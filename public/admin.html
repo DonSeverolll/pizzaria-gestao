@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Administração - PL Pizzas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="admin-page">
+      <button id="adminMenuToggle" class="admin-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu administrativo">
+        ☰
+      </button>
+
+      <aside id="adminSidebar" class="admin-sidebar">
+        <div class="admin-brand">
+          <img class="brand-logo brand-logo-admin" src="/logo-pl-real.png" alt="Logo PL Pizzas" />
+          <div>
+            <strong>PL Pizzas</strong>
+            <small>Admin</small>
+          </div>
+        </div>
+
+        <nav class="admin-nav" aria-label="Menu administrativo">
+          <a href="/admin-mesas.html" class="admin-nav-item">Gerenciamento de Mesas e Cadeiras</a>
+          <a href="/admin-clientes.html" class="admin-nav-item">Clientes Cadastrados</a>
+          <a href="/admin-produtos.html" class="admin-nav-item">Produtos</a>
+          <a href="/admin-pedidos.html" class="admin-nav-item">Pedidos</a>
+          <a href="/admin-estoque.html" class="admin-nav-item">Estoque</a>
+          <a href="/admin-lucro.html" class="admin-nav-item">Dashboard de Lucro</a>
+        </nav>
+      </aside>
+
+      <main class="admin-content">
+        <div id="loginView" class="admin-card login-panel">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img class="brand-logo brand-logo-admin" src="/logo-pl-real.png" alt="Logo PL Pizzas" />
+            <h2 style="margin: 0 0 8px;">Acesso administrativo</h2>
+            <p style="margin: 0; color: var(--muted);">Entre com suas credenciais para controlar a operação da pizzaria</p>
+          </div>
+
+          <form id="loginForm">
+            <div class="form-group">
+              <label for="username">Usuário</label>
+              <input id="username" name="username" type="text" value="admin" autocomplete="username" required />
+            </div>
+            <div class="form-group">
+              <label for="password">Senha</label>
+              <input id="password" name="password" type="password" value="admin123" autocomplete="current-password" required />
+            </div>
+            <button class="button primary full" type="submit">Entrar</button>
+            <div id="loginMessage" class="form-message" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <div id="dashboardView" class="hidden">
+          <header class="admin-header">
+            <div>
+              <span class="eyebrow">Painel administrativo</span>
+              <h1 style="margin: 0;">Visão geral da operação</h1>
+            </div>
+            <div class="admin-toolbar">
+              <span class="status-pill">Sessão ativa</span>
+              <button id="logoutButton" class="button ghost" type="button">Sair</button>
+            </div>
+          </header>
+
+          <section class="summary-grid" id="summaryGrid"></section>
+
+          <section class="admin-card">
+            <div class="admin-header">
+              <div>
+                <h2 style="margin: 0;">Mesas da casa</h2>
+              </div>
+            </div>
+
+            <div class="table-form">
+              <input id="tableName" type="text" placeholder="Nome da mesa (ex.: Mesa 06)" />
+              <input id="tableCapacity" type="number" min="1" max="12" placeholder="Capacidade" />
+              <button id="createTableButton" class="button primary" type="button">Cadastrar mesa</button>
+            </div>
+
+            <div id="tableList" class="tables-grid" style="margin-top: 22px;"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

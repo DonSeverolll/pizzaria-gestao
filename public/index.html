@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PL Pizzas | Cardápio</title>
+    <meta name="description" content="Cardápio digital da PL Pizzas, com pizzas artesanais, bebidas e promoções." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container nav">
+        <div class="brand" aria-label="Logo da PL Pizzas">
+          <img class="brand-logo" src="/logo-pl-real.png" alt="Logo PL Pizzas" />
+          <div>
+            <strong>PL Pizzas</strong>
+            <small>Pizza artesanal</small>
+          </div>
+        </div>
+        <nav class="nav-links" aria-label="Menu principal">
+          <button id="sidebarToggle" class="menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu">
+            <span aria-hidden="true">☰</span>
+          </button>
+          <a href="#menu">Menu</a>
+          <a href="#promo">Promoções</a>
+          <a href="#local">Local</a>
+          <button id="cartButton" class="cart-button" type="button">Carrinho <span id="cartCount">0</span></button>
+        </nav>
+      </div>
+    </header>
+
+    <aside id="sidebarMenu" class="sidebar-menu" aria-label="Barra lateral do cliente">
+      <div class="sidebar-header">
+        <h3>Minha conta</h3>
+        <button id="sidebarClose" class="icon-button" type="button" aria-label="Fechar menu">×</button>
+      </div>
+
+      <div id="guestSidebar" class="sidebar-section active">
+        <h4>Login</h4>
+        <form id="sideLoginForm" class="sidebar-form">
+          <label>
+            <span>Usuário</span>
+            <input id="sidebarUsername" type="text" placeholder="Seu login" required />
+          </label>
+          <label>
+            <span>Senha</span>
+            <input id="sidebarPassword" type="password" placeholder="Sua senha" required />
+          </label>
+          <button type="submit" class="button primary full">Entrar</button>
+          <button id="registerCustomerButton" type="button" class="button ghost full">Cadastrar cliente</button>
+        </form>
+        <div id="sidebarLoginMessage" class="sidebar-message" aria-live="polite"></div>
+      </div>
+
+      <div id="customerSidebar" class="sidebar-section hidden">
+        <h4>Cliente</h4>
+        <div id="customerGreeting" class="sidebar-greeting"></div>
+        <button type="button" class="sidebar-action" data-view="history">Histórico de compra</button>
+        <button type="button" class="sidebar-action" data-view="status">Status atual do pedido</button>
+        <button id="adminPanelButton" type="button" class="sidebar-action admin-panel-button hidden">Painel administrativo</button>
+        <button type="button" class="sidebar-action" data-view="menu">Voltar ao menu</button>
+        <button id="sidebarLogout" type="button" class="button ghost full">Sair</button>
+      </div>
+    </aside>
+
+    <main>
+      <section class="hero container">
+        <div class="hero-copy">
+          <span class="eyebrow">Bem-vindo(a) à PL Pizzas</span>
+          <h1>Pizzas artesanais com sabor que conquista todos os gostos.</h1>
+          <p>
+            Massa artesanal, ingredientes selecionados e sabor que encanta. Peça agora e aproveite o melhor da pizza em Recife.
+          </p>
+          <div class="hero-actions">
+            <a href="#menu" class="button primary">Ver cardápio</a>
+            <a href="#local" class="button secondary">Visitar a pizzaria</a>
+          </div>
+          <div class="strength-row">
+            <span>📍 Santo Amaro, Recife</span>
+            <span>⏱ 40–60 min</span>
+            <span>🍕 Até 2 sabores</span>
+          </div>
+        </div>
+
+        <div class="hero-card">
+          <div class="mini-badge">Melhor escolha</div>
+          <h3>Pizza grande</h3>
+          <ul>
+            <li>Até 2 sabores</li>
+            <li>Massa artesanal</li>
+            <li>Entrega ou retirada</li>
+          </ul>
+          <strong>a partir de R$ 30</strong>
+        </div>
+      </section>
+
+      <section class="promo-banner container" id="promo">
+        <div>
+          <span class="promo-tag">Promoção</span>
+          <h2>Peça sua pizza favorita e aproveite o sabor da casa</h2>
+        </div>
+        <a class="button primary" href="#menu">Peça agora</a>
+      </section>
+
+      <section class="filters container" id="menu">
+        <div class="search-wrap">
+          <input id="searchInput" type="search" placeholder="Buscar por nome ou ingrediente..." aria-label="Buscar produto" />
+        </div>
+        <div id="categoryTabs" class="category-tabs" aria-label="Categorias do cardápio"></div>
+      </section>
+
+      <section class="container menu-section">
+        <div id="menuGrid" class="menu-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="customerDashboardSection" class="container customer-dashboard hidden">
+        <div class="customer-panel">
+          <div class="card-title-row">
+            <span class="section-kicker">Área do cliente</span>
+            <h3>Minhas informações</h3>
+          </div>
+          <div id="customerPanelBody" class="customer-panel-body"></div>
+        </div>
+      </section>
+
+      <section class="container checkout-shell" id="checkout">
+        <div class="checkout-layout">
+          <div class="checkout-panel">
+            <div class="card-title-row">
+              <span class="section-kicker">Seu pedido</span>
+              <h3>Resumo do carrinho</h3>
+            </div>
+            <div id="cartItems" class="cart-items" aria-live="polite"></div>
+            <div class="order-summary">
+              <div><span>Subtotal</span><strong id="subtotalValue">R$ 0,00</strong></div>
+              <div><span>Entrega</span><strong id="deliveryValue">R$ 0,00</strong></div>
+              <div class="total-line"><span>Total</span><strong id="totalValue">R$ 0,00</strong></div>
+            </div>
+          </div>
+
+          <form id="checkoutForm" class="checkout-form">
+            <div class="card-title-row">
+              <span class="section-kicker">Finalizar compra</span>
+              <h3>Dados da entrega</h3>
+            </div>
+
+            <div class="form-row">
+              <label>
+                <span>Nome</span>
+                <input type="text" name="name" placeholder="Seu nome" required />
+              </label>
+            </div>
+
+            <div class="form-row two-columns">
+              <label>
+                <span>Telefone</span>
+                <input type="tel" name="phone" placeholder="(81) 9 9999-9999" required />
+              </label>
+              <label>
+                <span>Pagamento</span>
+                <select name="payment" required>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="pix">Pix</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                <span>Endereço</span>
+                <textarea name="address" rows="3" placeholder="Rua, número e bairro" required></textarea>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <label>
+                <span>Observações</span>
+                <textarea name="notes" rows="2" placeholder="Ponto de referência, sem cebola, etc."></textarea>
+              </label>
+            </div>
+
+            <button type="submit" class="button primary full">Confirmar pedido</button>
+            <p id="checkoutMessage" class="checkout-message" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="container info-grid">
+        <div class="qr-card">
+          <div class="card-title-row">
+            <span class="section-kicker">Peça pelo site</span>
+            <h3>Escaneie o QR code</h3>
+          </div>
+          <div class="qr-box">
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http%3A%2F%2Flocalhost%3A3000"
+              alt="QR code do cardápio da PL Pizzas"
+            />
+          </div>
+          <a class="button primary full" href="http://localhost:3000" target="_blank" rel="noreferrer">Abrir cardápio</a>
+        </div>
+
+        <div class="visit-card" id="local">
+          <div class="card-title-row">
+            <span class="section-kicker">Local da pizzaria</span>
+            <h3>Visite a PL Pizzas</h3>
+          </div>
+          <p>
+            Santo Amaro, Recife - PE<br />
+            Aberto e pronto para receber você com o melhor sabor.
+          </p>
+          <a
+            class="button secondary full"
+            href="https://www.google.com/maps/search/Santo+Amaro+Recife+PE"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver no mapa
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <template id="menuItemTemplate">
+      <article class="menu-item">
+        <div class="item-image">
+          <img data-role="image" src="" alt="" />
+        </div>
+        <div class="item-body">
+          <div class="item-header">
+            <h3 data-role="name">Pizza</h3>
+            <span class="price" data-role="price">R$ 0,00</span>
+          </div>
+          <p class="description" data-role="description"></p>
+          <div class="tags" data-role="ingredients"></div>
+
+          <div class="option-group">
+            <label>
+              <span>Tipo da pizza</span>
+              <select data-role="mode">
+                <option value="tradicional">Tradicional</option>
+                <option value="integral">Integral</option>
+                <option value="fina">Massa fina</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="option-group">
+            <span>Metade a metade</span>
+            <div class="split-row">
+              <label><input type="radio" name="split-{{id}}" value="normal" checked /> Normal</label>
+              <label><input type="radio" name="split-{{id}}" value="metade" /> Meia e meia</label>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <span>Borda e extras</span>
+            <div class="checkbox-row">
+              <label><input type="checkbox" value="catupiry" /> Catupiry</label>
+              <label><input type="checkbox" value="bacon" /> Bacon</label>
+              <label><input type="checkbox" value="cheddar" /> Cheddar</label>
+            </div>
+          </div>
+
+          <button class="button primary full" type="button">Adicionar ao pedido</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

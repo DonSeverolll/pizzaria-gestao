@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Produtos - PL Pizzas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="admin-page">
+      <button id="adminMenuToggle" class="admin-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu administrativo">
+        ☰
+      </button>
+
+      <aside id="adminSidebar" class="admin-sidebar open">
+        <div class="admin-brand">
+          <img class="brand-logo brand-logo-admin" src="/logo-pl-real.png" alt="Logo PL Pizzas" />
+          <div>
+            <strong>PL Pizzas</strong>
+            <small>Admin</small>
+          </div>
+        </div>
+
+        <nav class="admin-nav" aria-label="Menu administrativo">
+          <a href="/admin-mesas.html" class="admin-nav-item">Gerenciamento de Mesas e Cadeiras</a>
+          <a href="/admin-clientes.html" class="admin-nav-item">Clientes Cadastrados</a>
+          <a href="/admin-produtos.html" class="admin-nav-item active">Produtos</a>
+          <a href="/admin-pedidos.html" class="admin-nav-item">Pedidos</a>
+          <a href="/admin-estoque.html" class="admin-nav-item">Estoque</a>
+          <a href="/admin-lucro.html" class="admin-nav-item">Dashboard de Lucro</a>
+        </nav>
+      </aside>
+
+      <main class="admin-content">
+        <header class="admin-header">
+          <div>
+            <span class="eyebrow">Produtos</span>
+            <h1 style="margin: 0;">Cardápio e produtos</h1>
+          </div>
+          <a href="/admin" class="button ghost">Voltar</a>
+        </header>
+
+        <section class="admin-card">
+          <form id="productForm" class="product-form">
+            <input id="productName" type="text" placeholder="Nome do produto" required />
+            <select id="productCategory" required>
+              <option value="">Categoria</option>
+              <option value="Comida">Comida</option>
+              <option value="Pizza">Pizza</option>
+              <option value="Bebida">Bebida</option>
+            </select>
+            <input id="productPrice" type="number" step="0.01" min="0" placeholder="Valor" required />
+            <input id="productImage" type="url" placeholder="URL da foto" />
+            <input id="productDescription" type="text" placeholder="Descrição" />
+
+            <div id="foodFields" class="field-group hidden">
+              <input id="productFlavors" type="text" placeholder="Sabores (ex.: pepperoni, marguerita)" />
+              <input id="productSizes" type="text" placeholder="Tamanhos (Pequena, Normal, Meia a Meia, Grande)" />
+              <input id="productDoughType" type="text" placeholder="Tipo de borda (se pizza)" />
+            </div>
+
+            <div id="drinkFields" class="field-group hidden">
+              <input id="productMeasure" type="text" placeholder="Litros / mililitros (ex.: 500ml)" />
+            </div>
+
+            <button type="submit" class="button primary">Adicionar produto</button>
+          </form>
+        </section>
+
+        <section class="admin-card" style="margin-top: 18px;">
+          <div id="productsList" class="product-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>
