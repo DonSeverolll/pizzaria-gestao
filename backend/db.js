@@ -2,14 +2,35 @@ require('dotenv').config();
 
 const fs = require('node:fs');
 const path = require('node:path');
-const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
+
+let sqlite3 = null;
+try {
+  sqlite3 = require('sqlite3').verbose();
+} catch (error) {
+  console.warn('SQLite native module unavailable in this runtime; SQLite fallback is disabled.', error.message);
+}
 
 const dataDir = path.join(__dirname, '..', 'data');
 const dbPath = path.join(dataDir, 'pizzaria.db');
 const isTestRun = process.execArgv.includes('--test') || process.argv.includes('--test') || process.argv.includes('test') || process.env.NODE_ENV === 'test';
-let DB_PROVIDER = (isTestRun ? 'sqlite' : (process.env.DB_PROVIDER || 'sqlite')).toLowerCase();
+
+function resolveDbProvider() {
+  const hasPostgresConnection = Boolean(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL);
+
+  if (process.env.VERCEL && hasPostgresConnection) {
+    return 'postgres';
+  }
+
+  if (isTestRun) {
+    return 'sqlite';
+  }
+
+  return (process.env.DB_PROVIDER || 'sqlite').toLowerCase();
+}
+
+let DB_PROVIDER = resolveDbProvider();
 let postgresPool = null;
 
 const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
@@ -27,6 +48,10 @@ let dbInstance = null;
 let db = null;
 
 function ensureDb() {
+  if (!sqlite3) {
+    throw new Error('SQLite is unavailable in this environment. Configure SUPABASE_DB_URL or DATABASE_URL and set DB_PROVIDER=postgres for serverless deployments.');
+  }
+
   if (!db) {
     db = new sqlite3.Database(dbPath);
   }
