@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('node:path');
 const cors = require('cors');
@@ -314,9 +316,13 @@ app.get('*', (req, res) => {
   return res.sendFile(path.join(__dirname, 'public', '/index.html'));
 });
 
-(async () => {
-  await createDb();
-  app.listen(PORT, () => {
-    console.log(`Pizzaria API rodando em http://localhost:${PORT}`);
-  });
-})();
+if (process.env.VERCEL || require.main !== module) {
+  module.exports = app;
+} else {
+  (async () => {
+    await createDb();
+    app.listen(PORT, () => {
+      console.log(`Pizzaria API rodando em http://localhost:${PORT}`);
+    });
+  })();
+}
