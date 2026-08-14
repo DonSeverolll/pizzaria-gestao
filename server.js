@@ -21,6 +21,14 @@ const {
   getOrdersByCustomer,
   updateTableStatus,
   createTable,
+  getStoreSettings,
+  saveStoreSettings,
+  getStoreHours,
+  saveStoreHours,
+  getCashRegister,
+  openCashRegister,
+  addCashMovement,
+  closeCashRegister,
 } = require('./backend/db');
 const { signToken, authMiddleware, requireAdmin, requireAuth } = require('./backend/auth');
 
@@ -291,6 +299,102 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
     return res.status(201).json({ order });
   } catch (error) {
     return res.status(500).json({ message: 'Erro ao criar pedido.', error: error.message });
+  }
+});
+
+app.get('/api/store/settings', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const settings = await getStoreSettings();
+    res.json({
+      ...settings,
+      isOpen: settings ? Boolean(Number(settings.is_open)) : true,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao carregar configurações da loja.', error: error.message });
+  }
+});
+
+app.post('/api/store/settings', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const settings = await saveStoreSettings(req.body || {});
+    res.json({
+      ...settings,
+      isOpen: settings ? Boolean(Number(settings.is_open)) : true,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao salvar configurações da loja.', error: error.message });
+  }
+});
+
+app.get('/api/store/hours', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const hours = await getStoreHours();
+    res.json(hours.map((entry) => ({
+      ...entry,
+      enabled: Boolean(Number(entry.enabled)),
+    })));
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao carregar horários da loja.', error: error.message });
+  }
+});
+
+app.post('/api/store/hours', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const hours = Array.isArray(req.body) ? req.body : req.body?.hours || [];
+    const saved = await saveStoreHours(hours);
+    res.json(saved);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao salvar horários da loja.', error: error.message });
+  }
+});
+
+app.get('/api/cash/register', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const register = await getCashRegister();
+    res.json(register || { status: 'closed', movements: [], initial_balance: 0, cash_total: 0, pix_total: 0, card_total: 0, withdrawals: 0 });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao carregar caixa.', error: error.message });
+  }
+});
+
+app.post('/api/cash/register/open', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const register = await openCashRegister({
+      initialBalance: req.body?.initialBalance || 0,
+      openedBy: req.body?.openedBy || 'admin',
+      notes: req.body?.notes || '',
+    });
+    res.status(201).json(register);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao abrir caixa.', error: error.message });
+  }
+});
+
+app.post('/api/cash/register/movement', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { registerId, type, amount, method, description } = req.body;
+    if (!registerId || !type || !amount) {
+      return res.status(400).json({ message: 'Registro, tipo e valor são obrigatórios.' });
+    }
+
+    const movement = await addCashMovement({ registerId, type, amount, method, description });
+    return res.status(201).json(movement);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao registrar movimento.', error: error.message });
+  }
+});
+
+app.post('/api/cash/register/close', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { registerId, notes } = req.body;
+    if (!registerId) {
+      return res.status(400).json({ message: 'Registro do caixa é obrigatório.' });
+    }
+
+    const result = await closeCashRegister({ registerId, notes: notes || '' });
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao fechar caixa.', error: error.message });
   }
 });
 

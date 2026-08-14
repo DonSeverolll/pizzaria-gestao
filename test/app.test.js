@@ -51,3 +51,26 @@ test('seedData populates admin user and client profile metadata', async () => {
   assert.ok(customerColumns.includes('name') && customerColumns.includes('login'), 'Customer metadata should exist');
   await closeDb();
 });
+
+test('erp tables and store settings exist for admin operations', async () => {
+  const db = await createDb();
+
+  const settingsTable = await new Promise((resolve, reject) => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='store_settings'", (err, row) => {
+      if (err) return reject(err);
+      resolve(row?.name || null);
+    });
+  });
+
+  const cashTable = await new Promise((resolve, reject) => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='cash_register'", (err, row) => {
+      if (err) return reject(err);
+      resolve(row?.name || null);
+    });
+  });
+
+  assert.equal(settingsTable, 'store_settings', 'Store settings table should exist');
+  assert.equal(cashTable, 'cash_register', 'Cash register table should exist');
+
+  await closeDb();
+});
