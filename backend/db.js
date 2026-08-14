@@ -482,7 +482,7 @@ async function seedData() {
   );
 
   const existingMenu = await all('SELECT COUNT(*) as total FROM menu_items');
-  if (existingMenu[0].total === 0) {
+  if (Number(existingMenu[0].total) === 0) {
     const menuItems = [
       {
         name: 'Calabresa',
@@ -599,7 +599,7 @@ async function seedData() {
   }
 
   const existingTables = await all('SELECT COUNT(*) as total FROM tables');
-  if (existingTables[0].total === 0) {
+  if (Number(existingTables[0].total) === 0) {
     const seedTables = [
       { name: 'Mesa 01', capacity: 2, status: 'available' },
       { name: 'Mesa 02', capacity: 2, status: 'occupied' },
@@ -617,7 +617,7 @@ async function seedData() {
   }
 
   const existingSettings = await all('SELECT COUNT(*) as total FROM store_settings');
-  if (existingSettings[0].total === 0) {
+  if (Number(existingSettings[0].total) === 0) {
     await run(
       `INSERT INTO store_settings (company_name, logo_url, phone, address, pix_key, is_open, delivery_fee, delivery_rule) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ['PL Pizzas', '/logo-pl-real.png', '(99) 99999-9999', 'Rua das Pizzas, 123', 'plpizza@pix', 1, 9.9, 'fixed']
@@ -625,7 +625,7 @@ async function seedData() {
   }
 
   const existingHours = await all('SELECT COUNT(*) as total FROM store_hours');
-  if (existingHours[0].total === 0) {
+  if (Number(existingHours[0].total) === 0) {
     const days = [
       { day_of_week: 1, open_time: '18:00', close_time: '23:30', enabled: 1 },
       { day_of_week: 2, open_time: '18:00', close_time: '23:30', enabled: 1 },
@@ -645,7 +645,7 @@ async function seedData() {
   }
 
   const existingInventory = await all('SELECT COUNT(*) as total FROM inventory');
-  if (existingInventory[0].total === 0) {
+  if (Number(existingInventory[0].total) === 0) {
     const ingredients = [
       { name: 'Molho de tomate', unit: 'unidade', quantity: 32, minimum: 10 },
       { name: 'Queijo mussarela', unit: 'kg', quantity: 18, minimum: 5 },
