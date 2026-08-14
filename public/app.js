@@ -95,6 +95,47 @@ const customerPanelBody = document.getElementById('customerPanelBody');
 const registerCustomerButton = document.getElementById('registerCustomerButton');
 const sidebarLogout = document.getElementById('sidebarLogout');
 const adminPanelButton = document.getElementById('adminPanelButton');
+const storeStatusBanner = document.getElementById('storeStatusBanner');
+const storeBrandName = document.getElementById('storeBrandName');
+const storeBrandSubtitle = document.getElementById('storeBrandSubtitle');
+const storeAddressText = document.getElementById('storeAddressText');
+
+async function loadStoreSettings() {
+  try {
+    const response = await fetch('/api/store/settings', {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    if (storeBrandName) {
+      storeBrandName.textContent = data.company_name || 'PL Pizzas';
+    }
+    if (storeBrandSubtitle) {
+      storeBrandSubtitle.textContent = data.phone ? `Contato: ${data.phone}` : 'Pizza artesanal';
+    }
+    if (storeAddressText) {
+      storeAddressText.innerHTML = `${data.address || 'Santo Amaro, Recife - PE'}<br />${data.isOpen ? 'Aberto e pronto para receber você com o melhor sabor.' : 'Loja fechada no momento.'}`;
+    }
+
+    const isOpen = Boolean(Number(data.is_open ?? 1));
+    const checkoutButton = document.querySelector('#checkoutForm button[type="submit"]');
+    if (checkoutButton) {
+      checkoutButton.disabled = !isOpen;
+      checkoutButton.style.opacity = isOpen ? '1' : '0.6';
+      checkoutButton.textContent = isOpen ? 'Confirmar pedido' : 'Loja fechada';
+    }
+
+    if (storeStatusBanner) {
+      storeStatusBanner.classList.toggle('hidden', isOpen);
+    }
+  } catch {
+    // ignore and keep default storefront copy
+  }
+}
 
 function toCurrency(value) {
   return new Intl.NumberFormat('pt-BR', {
@@ -457,8 +498,19 @@ function logoutCustomer() {
   sidebarLoginMessage.textContent = '';
 }
 
-checkoutForm.addEventListener('submit', (event) => {
+checkoutForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+
+  try {
+    const settings = await fetch('/api/store/settings').then((response) => response.ok ? response.json() : null);
+    if (settings && !Number(settings.is_open)) {
+      checkoutMessage.textContent = 'A loja está fechada no momento. Tente novamente em outro horário.';
+      checkoutMessage.style.color = '#d71920';
+      return;
+    }
+  } catch {
+    // ignore and continue when settings endpoint is unavailable
+  }
 
   if (!state.cart.length) {
     checkoutMessage.textContent = 'Adicione pelo menos um item ao carrinho antes de confirmar o pedido.';
@@ -552,4 +604,5 @@ if (session.token) {
   renderClientDashboard('history');
 }
 
+loadStoreSettings();
 initMenu();
