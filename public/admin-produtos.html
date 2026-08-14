@@ -25,12 +25,14 @@
         </div>
 
         <nav class="admin-nav" aria-label="Menu administrativo">
+          <a href="/admin" class="admin-nav-item">Dashboard</a>
           <a href="/admin-mesas.html" class="admin-nav-item">Gerenciamento de Mesas e Cadeiras</a>
           <a href="/admin-clientes.html" class="admin-nav-item">Clientes Cadastrados</a>
           <a href="/admin-produtos.html" class="admin-nav-item active">Produtos</a>
           <a href="/admin-pedidos.html" class="admin-nav-item">Pedidos</a>
           <a href="/admin-estoque.html" class="admin-nav-item">Estoque</a>
           <a href="/admin-lucro.html" class="admin-nav-item">Dashboard de Lucro</a>
+          <a href="/admin-config.html" class="admin-nav-item">Configurações</a>
         </nav>
       </aside>
 
@@ -45,6 +47,7 @@
 
         <section class="admin-card">
           <form id="productForm" class="product-form">
+            <input id="productId" type="hidden" value="" />
             <input id="productName" type="text" placeholder="Nome do produto" required />
             <select id="productCategory" required>
               <option value="">Categoria</option>
@@ -52,21 +55,43 @@
               <option value="Pizza">Pizza</option>
               <option value="Bebida">Bebida</option>
             </select>
-            <input id="productPrice" type="number" step="0.01" min="0" placeholder="Valor" required />
-            <input id="productImage" type="url" placeholder="URL da foto" />
+            <input id="productPrice" type="number" step="0.01" min="0" placeholder="Valor base" required />
+
+            <div class="two-columns">
+              <input id="productImage" type="text" placeholder="URL da foto ou emoji" />
+              <div class="upload-row">
+                <input id="productImageFile" type="file" accept="image/*" />
+                <button id="uploadImageButton" class="button ghost" type="button">Enviar imagem</button>
+              </div>
+            </div>
+
             <input id="productDescription" type="text" placeholder="Descrição" />
 
             <div id="foodFields" class="field-group hidden">
               <input id="productFlavors" type="text" placeholder="Sabores (ex.: pepperoni, marguerita)" />
               <input id="productSizes" type="text" placeholder="Tamanhos (Pequena, Normal, Meia a Meia, Grande)" />
               <input id="productDoughType" type="text" placeholder="Tipo de borda (se pizza)" />
+
+              <strong class="size-prices-label">Preço por tamanho (opcional)</strong>
+              <div class="two-columns">
+                <input id="priceBroto" type="number" step="0.01" min="0" placeholder="Broto" />
+                <input id="priceMedia" type="number" step="0.01" min="0" placeholder="Média" />
+              </div>
+              <div class="two-columns">
+                <input id="priceGrande" type="number" step="0.01" min="0" placeholder="Grande" />
+                <input id="priceGigante" type="number" step="0.01" min="0" placeholder="Gigante" />
+              </div>
             </div>
 
             <div id="drinkFields" class="field-group hidden">
               <input id="productMeasure" type="text" placeholder="Litros / mililitros (ex.: 500ml)" />
             </div>
 
-            <button type="submit" class="button primary">Adicionar produto</button>
+            <div class="type-actions">
+              <button id="productSubmitButton" type="submit" class="button primary">Adicionar produto</button>
+              <button id="productCancelEdit" class="button ghost hidden" type="button">Cancelar edição</button>
+            </div>
+            <div id="productMessage" class="form-message" aria-live="polite"></div>
           </form>
         </section>
 
@@ -76,6 +101,6 @@
       </main>
     </div>
 
-    <script src="/admin.js"></script>
+    <script src="/admin-produtos.js"></script>
   </body>
 </html>

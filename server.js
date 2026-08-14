@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('node:path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
 
 const {
   createDb,
@@ -12,7 +13,10 @@ const {
   createCustomer,
   getCustomers,
   createProduct,
+  updateProduct,
+  deleteProduct,
   getMenuItems,
+  getAllMenuItems,
   getTables,
   createOrder,
   getOrders,
@@ -29,8 +33,18 @@ const {
   openCashRegister,
   addCashMovement,
   closeCashRegister,
+  getInventory,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+  addInventoryMovement,
+  getInventoryMovements,
+  getSalesReport,
 } = require('./backend/db');
 const { signToken, authMiddleware, requireAdmin, requireAuth } = require('./backend/auth');
+const { uploadImage } = require('./backend/storage');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -217,6 +231,49 @@ app.post('/api/products', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
+app.get('/api/products', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const products = await getAllMenuItems();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar produtos.', error: error.message });
+  }
+});
+
+app.patch('/api/products/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const updated = await updateProduct(Number(req.params.id), req.body || {});
+    if (!updated) {
+      return res.status(404).json({ message: 'Produto não encontrado.' });
+    }
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao atualizar produto.', error: error.message });
+  }
+});
+
+app.delete('/api/products/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    await deleteProduct(Number(req.params.id));
+    return res.status(204).end();
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao excluir produto.', error: error.message });
+  }
+});
+
+app.post('/api/uploads/image', authMiddleware, requireAdmin, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+    }
+
+    const url = await uploadImage(req.file.buffer, req.file.originalname, req.file.mimetype);
+    return res.json({ url });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Erro ao enviar imagem.' });
+  }
+});
+
 app.get('/api/tables', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const tables = await getTables();
@@ -395,6 +452,93 @@ app.post('/api/cash/register/close', authMiddleware, requireAdmin, async (req, r
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: 'Erro ao fechar caixa.', error: error.message });
+  }
+});
+
+app.get('/api/inventory', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const items = await getInventory();
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar estoque.', error: error.message });
+  }
+});
+
+app.post('/api/inventory', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { ingredientName, unit, quantity, minimumQuantity } = req.body;
+    if (!ingredientName || !unit) {
+      return res.status(400).json({ message: 'Nome do ingrediente e unidade são obrigatórios.' });
+    }
+
+    const item = await createInventoryItem({ ingredientName, unit, quantity, minimumQuantity });
+    return res.status(201).json(item);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao cadastrar ingrediente.', error: error.message });
+  }
+});
+
+app.patch('/api/inventory/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const updated = await updateInventoryItem(Number(req.params.id), req.body || {});
+    if (!updated) {
+      return res.status(404).json({ message: 'Ingrediente não encontrado.' });
+    }
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao atualizar ingrediente.', error: error.message });
+  }
+});
+
+app.delete('/api/inventory/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    await deleteInventoryItem(Number(req.params.id));
+    return res.status(204).end();
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao excluir ingrediente.', error: error.message });
+  }
+});
+
+app.post('/api/inventory/:id/movement', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { movementType, quantity, notes } = req.body;
+    const allowed = ['entrada', 'saida', 'ajuste', 'perda'];
+
+    if (!allowed.includes(movementType) || !quantity) {
+      return res.status(400).json({ message: 'Tipo de movimento e quantidade são obrigatórios.' });
+    }
+
+    const updated = await addInventoryMovement({ id: Number(req.params.id), movementType, quantity, notes });
+    if (!updated) {
+      return res.status(404).json({ message: 'Ingrediente não encontrado.' });
+    }
+    return res.status(201).json(updated);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao registrar movimento.', error: error.message });
+  }
+});
+
+app.get('/api/inventory/:id/movements', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const item = (await getInventory()).find((entry) => entry.id === Number(req.params.id));
+    if (!item) {
+      return res.status(404).json({ message: 'Ingrediente não encontrado.' });
+    }
+
+    const movements = await getInventoryMovements(item.ingredient_name);
+    return res.json(movements);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao buscar movimentos.', error: error.message });
+  }
+});
+
+app.get('/api/reports/sales', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { period, from, to } = req.query;
+    const report = await getSalesReport({ period: period || 'today', from, to });
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao gerar relatório.', error: error.message });
   }
 });
 
