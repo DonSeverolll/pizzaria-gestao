@@ -66,6 +66,7 @@ const state = {
   search: '',
   items: [],
   cart: [],
+  deliveryFee: 9.9,
 };
 
 const menuGrid = document.getElementById('menuGrid');
@@ -107,6 +108,139 @@ const storeStatusBanner = document.getElementById('storeStatusBanner');
 const storeBrandName = document.getElementById('storeBrandName');
 const storeBrandSubtitle = document.getElementById('storeBrandSubtitle');
 const storeAddressText = document.getElementById('storeAddressText');
+const modeOptions = document.querySelectorAll('[data-mode]');
+const locationButton = document.getElementById('locationButton');
+const locationLabel = document.getElementById('locationLabel');
+const locationValue = document.getElementById('locationValue');
+const cartTotalLabel = document.getElementById('cartTotalLabel');
+const addressModal = document.getElementById('addressModal');
+const addressModalClose = document.getElementById('addressModalClose');
+const addressForm = document.getElementById('addressForm');
+const addressStreet = document.getElementById('addressStreet');
+const addressNeighborhood = document.getElementById('addressNeighborhood');
+const addressComplement = document.getElementById('addressComplement');
+const addressMessage = document.getElementById('addressMessage');
+const menuGate = document.getElementById('menuGate');
+const menuFilters = document.getElementById('menu');
+const menuSection = document.getElementById('menuSection');
+const checkoutSection = document.getElementById('checkout');
+const gateAddressButton = document.getElementById('gateAddressButton');
+const gatePickupButton = document.getElementById('gatePickupButton');
+const checkoutAddressRow = document.getElementById('checkoutAddressRow');
+const checkoutAddressLabel = document.getElementById('checkoutAddressLabel');
+const checkoutAddress = document.getElementById('checkoutAddress');
+const loginButton = document.getElementById('loginButton');
+const registerButton = document.getElementById('registerButton');
+const accountButton = document.getElementById('accountButton');
+const topbarGuestActions = document.getElementById('topbarGuestActions');
+const topbarUserActions = document.getElementById('topbarUserActions');
+
+const ORDER_MODE_KEY = 'pl-pizzas-order-mode';
+const ADDRESS_KEY = 'pl-pizzas-address';
+
+const modeLabels = {
+  delivery: 'Delivery',
+  retirada: 'Retirada',
+  local: 'Comer no local',
+};
+
+function getOrderMode() {
+  const stored = localStorage.getItem(ORDER_MODE_KEY);
+  return modeLabels[stored] ? stored : 'delivery';
+}
+
+function setOrderMode(mode) {
+  localStorage.setItem(ORDER_MODE_KEY, mode);
+}
+
+function getAddress() {
+  try {
+    const raw = localStorage.getItem(ADDRESS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setAddress(address) {
+  localStorage.setItem(ADDRESS_KEY, JSON.stringify(address));
+}
+
+function formatAddress(address) {
+  if (!address) return '';
+  const main = [address.street, address.neighborhood].filter(Boolean).join(', ');
+  return address.complement ? `${main} — ${address.complement}` : main;
+}
+
+function isDelivery() {
+  return getOrderMode() === 'delivery';
+}
+
+function isMenuUnlocked() {
+  return !isDelivery() || Boolean(getAddress());
+}
+
+function openAddressModal() {
+  const address = getAddress();
+  if (address) {
+    addressStreet.value = address.street || '';
+    addressNeighborhood.value = address.neighborhood || '';
+    addressComplement.value = address.complement || '';
+  }
+  addressMessage.textContent = '';
+  addressModal.classList.remove('hidden');
+  addressStreet.focus();
+}
+
+function closeAddressModal() {
+  addressModal.classList.add('hidden');
+}
+
+function applyOrderModeUI() {
+  const mode = getOrderMode();
+  const address = getAddress();
+  const unlocked = isMenuUnlocked();
+
+  modeOptions.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.mode === mode);
+  });
+
+  if (isDelivery()) {
+    locationLabel.textContent = 'Local';
+    locationValue.textContent = address ? formatAddress(address) : 'Informe seu endereço';
+    locationButton.classList.remove('hidden');
+  } else {
+    locationLabel.textContent = mode === 'retirada' ? 'Retirada' : 'Comer no local';
+    locationValue.textContent = 'Na loja';
+  }
+
+  menuGate.classList.toggle('hidden', unlocked);
+  menuFilters.classList.toggle('hidden', !unlocked);
+  menuSection.classList.toggle('hidden', !unlocked);
+  checkoutSection.classList.toggle('hidden', !unlocked);
+
+  if (checkoutAddressRow) {
+    checkoutAddressRow.classList.toggle('hidden', !isDelivery());
+    checkoutAddress.required = isDelivery();
+    if (isDelivery()) {
+      checkoutAddressLabel.textContent = 'Endereço';
+      if (address && !checkoutAddress.value) {
+        checkoutAddress.value = formatAddress(address);
+      }
+    } else {
+      checkoutAddress.value = '';
+    }
+  }
+
+  renderCart();
+}
+
+function resolveDeliveryLocation(formAddress) {
+  const mode = getOrderMode();
+  if (mode === 'retirada') return 'Retirada no balcão';
+  if (mode === 'local') return 'Consumo no local';
+  return formAddress || formatAddress(getAddress()) || 'Entrega em domicílio';
+}
 
 async function loadStoreSettings() {
   try {
@@ -119,8 +253,12 @@ async function loadStoreSettings() {
     }
 
     const data = await response.json();
+    if (data.delivery_fee !== undefined && data.delivery_fee !== null) {
+      state.deliveryFee = Number(data.delivery_fee);
+      renderCart();
+    }
     if (storeBrandName) {
-      storeBrandName.textContent = data.company_name || 'PL Pizzas';
+      storeBrandName.textContent = data.company_name || 'PlPizza';
     }
     if (storeBrandSubtitle) {
       storeBrandSubtitle.textContent = data.phone ? `Contato: ${data.phone}` : 'Pizza artesanal';
@@ -204,12 +342,15 @@ function renderCart() {
     subtotalValue.textContent = 'R$ 0,00';
     deliveryValue.textContent = 'R$ 0,00';
     totalValue.textContent = 'R$ 0,00';
+    if (cartTotalLabel) cartTotalLabel.textContent = 'R$ 0,00';
     return;
   }
 
   const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const delivery = subtotal > 80 ? 0 : 9.9;
+  const delivery = isDelivery() && subtotal <= 80 ? state.deliveryFee : 0;
   const total = subtotal + delivery;
+
+  if (cartTotalLabel) cartTotalLabel.textContent = toCurrency(total);
 
   cartItems.innerHTML = state.cart
     .map(
@@ -353,8 +494,11 @@ async function initMenu() {
   try {
     const items = await fetchMenu();
     state.items = items;
-    if (!state.category && items.length > 0) {
-      state.category = items[0].category;
+
+    // A categoria padrão pode não existir no cardápio real; cai para a primeira disponível.
+    const availableCategories = [...new Set(items.map((item) => item.category))];
+    if (items.length > 0 && !availableCategories.includes(state.category)) {
+      state.category = availableCategories[0];
     }
     renderCategories(items);
     renderMenu();
@@ -370,6 +514,10 @@ searchInput.addEventListener('input', (event) => {
 });
 
 cartButton.addEventListener('click', () => {
+  if (!isMenuUnlocked()) {
+    openAddressModal();
+    return;
+  }
   document.getElementById('checkout').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
@@ -388,6 +536,11 @@ function updateSidebarAccess() {
 
   guestSidebar.classList.toggle('hidden', isLoggedIn);
   customerSidebar.classList.toggle('hidden', !isLoggedIn);
+
+  if (topbarGuestActions && topbarUserActions) {
+    topbarGuestActions.classList.toggle('hidden', isLoggedIn);
+    topbarUserActions.classList.toggle('hidden', !isLoggedIn);
+  }
 
   if (adminPanelButton) {
     adminPanelButton.classList.toggle('hidden', !isAdmin);
@@ -545,6 +698,13 @@ checkoutForm.addEventListener('submit', async (event) => {
     return;
   }
 
+  if (isDelivery() && !getAddress()) {
+    checkoutMessage.textContent = 'Informe seu endereço de entrega para finalizar o pedido.';
+    checkoutMessage.style.color = '#d71920';
+    openAddressModal();
+    return;
+  }
+
   const formData = new FormData(checkoutForm);
   const customerName = formData.get('name')?.toString().trim();
   const session = getSession();
@@ -560,7 +720,7 @@ checkoutForm.addEventListener('submit', async (event) => {
   const payload = {
     customerName,
     customerLogin: session.user?.username || null,
-    deliveryLocation: formData.get('address')?.toString().trim(),
+    deliveryLocation: resolveDeliveryLocation(formData.get('address')?.toString().trim()),
     paymentMethod,
     items: orderItems,
   };
@@ -644,6 +804,98 @@ sidebarToggle.addEventListener('click', () => {
   }
 });
 
+modeOptions.forEach((button) => {
+  button.addEventListener('click', () => {
+    const mode = button.dataset.mode;
+    setOrderMode(mode);
+    applyOrderModeUI();
+
+    if (mode === 'delivery' && !getAddress()) {
+      openAddressModal();
+    }
+  });
+});
+
+locationButton.addEventListener('click', () => {
+  if (isDelivery()) {
+    openAddressModal();
+    return;
+  }
+  document.getElementById('local')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+addressModalClose.addEventListener('click', closeAddressModal);
+
+addressModal.addEventListener('click', (event) => {
+  if (event.target === addressModal) {
+    closeAddressModal();
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !addressModal.classList.contains('hidden')) {
+    closeAddressModal();
+  }
+});
+
+addressForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const street = addressStreet.value.trim();
+  const neighborhood = addressNeighborhood.value.trim();
+
+  if (!street || !neighborhood) {
+    addressMessage.textContent = 'Preencha o endereço e o bairro para continuar.';
+    addressMessage.style.color = '#d71920';
+    return;
+  }
+
+  setAddress({ street, neighborhood, complement: addressComplement.value.trim() });
+  setOrderMode('delivery');
+  closeAddressModal();
+  applyOrderModeUI();
+  checkoutMessage.textContent = '';
+  menuFilters.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+gateAddressButton.addEventListener('click', openAddressModal);
+
+gatePickupButton.addEventListener('click', () => {
+  setOrderMode('retirada');
+  applyOrderModeUI();
+  menuFilters.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.querySelectorAll('[data-nav]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    const target = link.dataset.nav;
+
+    if ((target === 'cardapio' || target === 'cupons') && !isMenuUnlocked()) {
+      event.preventDefault();
+      openAddressModal();
+    }
+  });
+});
+
+if (loginButton) {
+  loginButton.addEventListener('click', () => {
+    openSidebar();
+    sidebarUsername.focus();
+  });
+}
+
+if (registerButton) {
+  registerButton.addEventListener('click', () => {
+    openSidebar();
+    sidebarUsername.focus();
+    sidebarLoginMessage.textContent = 'Preencha usuário e senha e toque em "Cadastrar cliente".';
+  });
+}
+
+if (accountButton) {
+  accountButton.addEventListener('click', openSidebar);
+}
+
 sidebarClose.addEventListener('click', closeSidebar);
 sideLoginForm.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -671,10 +923,11 @@ if (adminPanelButton) {
 }
 
 const session = getSession();
+updateSidebarAccess();
 if (session.token) {
-  updateSidebarAccess();
   renderClientDashboard('history');
 }
 
+applyOrderModeUI();
 loadStoreSettings();
 initMenu();

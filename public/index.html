@@ -11,26 +11,89 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="container nav">
-        <div class="brand" aria-label="Logo da PL Pizzas">
-          <img class="brand-logo" src="/logo-pl-real.png" alt="Logo PL Pizzas" />
-          <div>
-            <strong id="storeBrandName">PL Pizzas</strong>
-            <small id="storeBrandSubtitle">Pizza artesanal</small>
+    <header class="topbar" id="top">
+      <div class="topbar-main">
+        <div class="container topbar-main-inner">
+          <a class="brand" href="#top" aria-label="Página inicial">
+            <img class="brand-logo" src="/logo-pl-real.png" alt="" />
+            <span class="brand-wordmark" id="storeBrandName">PlPizza</span>
+          </a>
+
+          <nav class="topbar-nav" aria-label="Menu principal">
+            <a href="#top" class="topbar-nav-item" data-nav="home"><span aria-hidden="true">🏠</span> Home</a>
+            <a href="#menu" class="topbar-nav-item" data-nav="cardapio"><span aria-hidden="true">📋</span> Cardápio</a>
+            <a href="#promo" class="topbar-nav-item" data-nav="clube"><span aria-hidden="true">⭐</span> Clube PL</a>
+            <a href="#promo" class="topbar-nav-item" data-nav="cupons"><span aria-hidden="true">🎟️</span> Cupons</a>
+          </nav>
+
+          <div class="topbar-actions">
+            <div class="topbar-auth" id="topbarGuestActions">
+              <button id="loginButton" class="topbar-button outline" type="button">Entrar</button>
+              <button id="registerButton" class="topbar-button solid" type="button">Criar conta</button>
+            </div>
+            <div class="topbar-auth hidden" id="topbarUserActions">
+              <button id="accountButton" class="topbar-button outline" type="button">Minha conta</button>
+            </div>
+            <button id="sidebarToggle" class="topbar-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu">
+              <span aria-hidden="true">☰</span>
+            </button>
           </div>
         </div>
-        <nav class="nav-links" aria-label="Menu principal">
-          <button id="sidebarToggle" class="menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu">
-            <span aria-hidden="true">☰</span>
+      </div>
+
+      <div class="topbar-sub">
+        <div class="container topbar-sub-inner">
+          <div class="mode-switch" role="group" aria-label="Como você quer receber o pedido">
+            <button type="button" class="mode-option is-active" data-mode="delivery">Delivery</button>
+            <button type="button" class="mode-option" data-mode="retirada">Retirada</button>
+            <button type="button" class="mode-option" data-mode="local">Comer no local</button>
+          </div>
+
+          <button id="locationButton" class="location-pill" type="button" aria-haspopup="dialog">
+            <span class="pill-icon" aria-hidden="true">📍</span>
+            <span class="pill-text">
+              <strong id="locationLabel">Local</strong>
+              <span id="locationValue">Informe seu endereço</span>
+            </span>
+            <span class="pill-chevron" aria-hidden="true">⌄</span>
           </button>
-          <a href="#menu">Menu</a>
-          <a href="#promo">Promoções</a>
-          <a href="#local">Local</a>
-          <button id="cartButton" class="cart-button" type="button">Carrinho <span id="cartCount">0</span></button>
-        </nav>
+
+          <button id="cartButton" class="cart-pill" type="button">
+            <span class="pill-icon" aria-hidden="true">🛒</span>
+            <span class="pill-text">
+              <strong id="cartTotalLabel">R$ 0,00</strong>
+              <span><span id="cartCount">0</span> itens</span>
+            </span>
+            <span class="pill-chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
       </div>
     </header>
+
+    <div id="addressModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addressModalTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="addressModalTitle">Onde você quer receber seu pedido?</h3>
+          <button id="addressModalClose" class="icon-button" type="button" aria-label="Fechar">×</button>
+        </div>
+        <form id="addressForm" class="modal-form">
+          <label>
+            <span>Endereço e número</span>
+            <input id="addressStreet" type="text" placeholder="Ex.: Barros Barreto, 770" required />
+          </label>
+          <label>
+            <span>Bairro</span>
+            <input id="addressNeighborhood" type="text" placeholder="Ex.: Graças" required />
+          </label>
+          <label>
+            <span>Complemento / referência <small>(opcional)</small></span>
+            <input id="addressComplement" type="text" placeholder="Apartamento, bloco, ponto de referência" />
+          </label>
+          <button type="submit" class="button primary full">Salvar e ver cardápio</button>
+          <p id="addressMessage" class="checkout-message" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
 
     <aside id="sidebarMenu" class="sidebar-menu" aria-label="Barra lateral do cliente">
       <div class="sidebar-header">
@@ -120,6 +183,21 @@
         <a class="button primary" href="#menu">Peça agora</a>
       </section>
 
+      <section id="menuGate" class="container menu-gate hidden">
+        <div class="menu-gate-card">
+          <span class="menu-gate-icon" aria-hidden="true">📍</span>
+          <h3>Informe seu endereço para ver o cardápio</h3>
+          <p>
+            Para pedidos em <strong>Delivery</strong> precisamos do seu endereço para calcular a entrega.
+            Se preferir, escolha <strong>Retirada</strong> ou <strong>Comer no local</strong> e veja o cardápio agora mesmo.
+          </p>
+          <div class="menu-gate-actions">
+            <button id="gateAddressButton" class="button primary" type="button">Informar endereço</button>
+            <button id="gatePickupButton" class="button ghost" type="button">Quero retirar na loja</button>
+          </div>
+        </div>
+      </section>
+
       <section class="filters container" id="menu">
         <div class="search-wrap">
           <input id="searchInput" type="search" placeholder="Buscar por nome ou ingrediente..." aria-label="Buscar produto" />
@@ -127,7 +205,7 @@
         <div id="categoryTabs" class="category-tabs" aria-label="Categorias do cardápio"></div>
       </section>
 
-      <section class="container menu-section">
+      <section class="container menu-section" id="menuSection">
         <div id="menuGrid" class="menu-grid" aria-live="polite"></div>
       </section>
 
@@ -184,10 +262,10 @@
               </label>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" id="checkoutAddressRow">
               <label>
-                <span>Endereço</span>
-                <textarea name="address" rows="3" placeholder="Rua, número e bairro" required></textarea>
+                <span id="checkoutAddressLabel">Endereço</span>
+                <textarea id="checkoutAddress" name="address" rows="3" placeholder="Rua, número e bairro" required></textarea>
               </label>
             </div>
 

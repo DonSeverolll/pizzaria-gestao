@@ -476,12 +476,14 @@ async function createDb() {
 }
 
 async function seedData() {
-  const adminPassword = await bcrypt.hash('admin123', 10);
-
-  await run(
-    `INSERT OR IGNORE INTO users (username, password_hash, role) VALUES (?, ?, 'admin')`,
-    ['admin', adminPassword]
-  );
+  const existingUsers = await all('SELECT COUNT(*) as total FROM users');
+  if (Number(existingUsers[0].total) === 0) {
+    const adminPassword = await bcrypt.hash('admin123', 10);
+    await run(
+      `INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')`,
+      ['admin', adminPassword]
+    );
+  }
 
   const sampleCustomerPassword = await bcrypt.hash('cliente123', 10);
   await run(
