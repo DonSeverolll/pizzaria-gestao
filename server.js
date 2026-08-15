@@ -347,6 +347,10 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Pedido vazio.' });
     }
 
+    if (!(await isStoreOpen())) {
+      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
+    }
+
     const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
     const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
     const order = await createOrder({
@@ -374,6 +378,10 @@ app.post('/api/payments/pix', authMiddleware, async (req, res) => {
     }
 
     const settings = await getStoreSettings();
+    if (settings && !Number(settings.is_open)) {
+      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
+    }
+
     if (!settings?.pix_key) {
       return res.status(400).json({ message: 'Chave Pix da loja ainda não foi configurada em Configurações.' });
     }
@@ -415,6 +423,10 @@ app.post('/api/payments/mercadopago/preference', authMiddleware, async (req, res
 
     if (!items || !items.length) {
       return res.status(400).json({ message: 'Pedido vazio.' });
+    }
+
+    if (!(await isStoreOpen())) {
+      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
     }
 
     const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
@@ -474,6 +486,38 @@ app.post('/api/payments/mercadopago/webhook', async (req, res) => {
   } catch (error) {
     console.error('Erro ao processar webhook do Mercado Pago:', error.message);
     return res.status(200).json({ received: true });
+  }
+});
+
+// A trava de loja fechada no navegador pode ser contornada, então todo
+// endpoint que cria pedido confirma o status no servidor antes de gravar.
+async function isStoreOpen() {
+  const settings = await getStoreSettings();
+  return settings ? Boolean(Number(settings.is_open)) : true;
+}
+
+const STORE_CLOSED_MESSAGE = 'A loja está fechada no momento e não pode receber pedidos.';
+
+// Versão pública do perfil da loja: expõe só o que o cardápio precisa.
+// A chave Pix e os dados do titular ficam de fora de propósito.
+app.get('/api/store/public-settings', async (req, res) => {
+  try {
+    const settings = await getStoreSettings();
+    if (!settings) {
+      return res.json({ companyName: 'PlPizza', isOpen: true, deliveryFee: 0, deliveryRule: 'fixed' });
+    }
+
+    return res.json({
+      companyName: settings.company_name,
+      logoUrl: settings.logo_url,
+      phone: settings.phone,
+      address: settings.address,
+      isOpen: Boolean(Number(settings.is_open)),
+      deliveryFee: Number(settings.delivery_fee || 0),
+      deliveryRule: settings.delivery_rule || 'fixed',
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao carregar dados da loja.', error: error.message });
   }
 });
 

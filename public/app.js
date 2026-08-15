@@ -67,6 +67,7 @@ const state = {
   items: [],
   cart: [],
   deliveryFee: 9.9,
+  isOpen: true,
 };
 
 const menuGrid = document.getElementById('menuGrid');
@@ -242,23 +243,28 @@ function resolveDeliveryLocation(formAddress) {
   return formAddress || formatAddress(getAddress()) || 'Entrega em domicílio';
 }
 
+async function fetchPublicSettings() {
+  const response = await fetch('/api/store/public-settings', {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar os dados da loja.');
+  }
+
+  return response.json();
+}
+
 async function loadStoreSettings() {
   try {
-    const response = await fetch('/api/store/settings', {
-      headers: { Accept: 'application/json' },
-    });
+    const data = await fetchPublicSettings();
 
-    if (!response.ok) {
-      return;
-    }
+    state.deliveryFee = Number(data.deliveryFee || 0);
+    state.isOpen = data.isOpen;
+    renderCart();
 
-    const data = await response.json();
-    if (data.delivery_fee !== undefined && data.delivery_fee !== null) {
-      state.deliveryFee = Number(data.delivery_fee);
-      renderCart();
-    }
     if (storeBrandName) {
-      storeBrandName.textContent = data.company_name || 'PlPizza';
+      storeBrandName.textContent = data.companyName || 'PlPizza';
     }
     if (storeBrandSubtitle) {
       storeBrandSubtitle.textContent = data.phone ? `Contato: ${data.phone}` : 'Pizza artesanal';
@@ -267,19 +273,22 @@ async function loadStoreSettings() {
       storeAddressText.innerHTML = `${data.address || 'Santo Amaro, Recife - PE'}<br />${data.isOpen ? 'Aberto e pronto para receber você com o melhor sabor.' : 'Loja fechada no momento.'}`;
     }
 
-    const isOpen = Boolean(Number(data.is_open ?? 1));
-    const checkoutButton = document.querySelector('#checkoutForm button[type="submit"]');
-    if (checkoutButton) {
-      checkoutButton.disabled = !isOpen;
-      checkoutButton.style.opacity = isOpen ? '1' : '0.6';
-      checkoutButton.textContent = isOpen ? 'Confirmar pedido' : 'Loja fechada';
-    }
-
-    if (storeStatusBanner) {
-      storeStatusBanner.classList.toggle('hidden', isOpen);
-    }
+    applyStoreOpenState(data.isOpen);
   } catch {
-    // ignore and keep default storefront copy
+    // mantém o conteúdo padrão da vitrine se a API não responder
+  }
+}
+
+function applyStoreOpenState(isOpen) {
+  const checkoutButton = document.querySelector('#checkoutForm button[type="submit"]');
+  if (checkoutButton) {
+    checkoutButton.disabled = !isOpen;
+    checkoutButton.style.opacity = isOpen ? '1' : '0.6';
+    checkoutButton.textContent = isOpen ? 'Confirmar pedido' : 'Loja fechada';
+  }
+
+  if (storeStatusBanner) {
+    storeStatusBanner.classList.toggle('hidden', isOpen);
   }
 }
 
@@ -682,8 +691,12 @@ checkoutForm.addEventListener('submit', async (event) => {
   pixResult.classList.add('hidden');
 
   try {
-    const settings = await fetch('/api/store/settings').then((response) => response.ok ? response.json() : null);
-    if (settings && !Number(settings.is_open)) {
+    const settings = await fetchPublicSettings();
+    state.deliveryFee = Number(settings.deliveryFee || 0);
+    state.isOpen = settings.isOpen;
+    applyStoreOpenState(settings.isOpen);
+
+    if (!settings.isOpen) {
       checkoutMessage.textContent = 'A loja está fechada no momento. Tente novamente em outro horário.';
       checkoutMessage.style.color = '#d71920';
       return;
