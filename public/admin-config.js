@@ -37,6 +37,8 @@ async function loadSettings() {
   settingsForm.phone.value = data.phone || '';
   settingsForm.address.value = data.address || '';
   settingsForm.pixKey.value = data.pix_key || '';
+  settingsForm.pixOwnerName.value = data.pix_owner_name || '';
+  settingsForm.pixCity.value = data.pix_city || '';
   settingsForm.isOpen.checked = Boolean(Number(data.is_open ?? 1));
   settingsForm.deliveryFee.value = data.delivery_fee ?? 9.9;
   settingsForm.deliveryRule.value = data.delivery_rule || 'fixed';
@@ -99,6 +101,8 @@ if (settingsForm) {
           phone: settingsForm.phone.value,
           address: settingsForm.address.value,
           pixKey: settingsForm.pixKey.value,
+          pixOwnerName: settingsForm.pixOwnerName.value,
+          pixCity: settingsForm.pixCity.value,
           isOpen: settingsForm.isOpen.checked,
           deliveryFee: Number(settingsForm.deliveryFee.value || 0),
           deliveryRule: settingsForm.deliveryRule.value,

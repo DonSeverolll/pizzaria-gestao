@@ -21,6 +21,10 @@ const {
   createOrder,
   getOrders,
   updateOrderStatus,
+  updateOrderPaymentReference,
+  getOrderByPaymentReference,
+  markOrderPaid,
+  cancelOrder,
   getOrderItemsByOrder,
   getOrdersByCustomer,
   updateTableStatus,
@@ -43,6 +47,8 @@ const {
 } = require('./backend/db');
 const { signToken, authMiddleware, requireAdmin, requireAuth } = require('./backend/auth');
 const { uploadImage } = require('./backend/storage');
+const { buildPixPayload, generatePixQrCode } = require('./backend/pix');
+const { createPreference, getPayment } = require('./backend/mercadopago');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -174,7 +180,7 @@ app.get('/api/orders', authMiddleware, requireAdmin, async (req, res) => {
 app.patch('/api/orders/:id/status', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
-    const allowedStatuses = ['em-preparo', 'pronto', 'em-entrega', 'entregue'];
+    const allowedStatuses = ['aguardando-pagamento', 'em-preparo', 'pronto', 'em-entrega', 'entregue', 'cancelado'];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ message: 'Status inválido.' });
@@ -356,6 +362,118 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
     return res.status(201).json({ order });
   } catch (error) {
     return res.status(500).json({ message: 'Erro ao criar pedido.', error: error.message });
+  }
+});
+
+app.post('/api/payments/pix', authMiddleware, async (req, res) => {
+  try {
+    const { items, customerName, customerLogin, deliveryLocation } = req.body;
+
+    if (!items || !items.length) {
+      return res.status(400).json({ message: 'Pedido vazio.' });
+    }
+
+    const settings = await getStoreSettings();
+    if (!settings?.pix_key) {
+      return res.status(400).json({ message: 'Chave Pix da loja ainda não foi configurada em Configurações.' });
+    }
+
+    const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
+    const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
+
+    const order = await createOrder({
+      customerId: customer?.id || null,
+      customerName: customerName || customer?.name || 'Cliente',
+      customerLogin: customerLogin || customer?.login || req.user?.username || null,
+      deliveryLocation: deliveryLocation || 'Entrega em domicílio',
+      paymentMethod: 'pix',
+      items,
+      totalValue,
+      status: 'aguardando-pagamento',
+      paymentProvider: 'pix-direto',
+    });
+
+    const pixPayload = buildPixPayload({
+      pixKey: settings.pix_key,
+      merchantName: settings.pix_owner_name || settings.company_name,
+      merchantCity: settings.pix_city || 'BRASIL',
+      amount: totalValue,
+      txid: `PEDIDO${order.id}`,
+    });
+
+    const qrCodeDataUrl = await generatePixQrCode(pixPayload);
+
+    return res.status(201).json({ order, pixPayload, qrCodeDataUrl });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Erro ao gerar pagamento Pix.' });
+  }
+});
+
+app.post('/api/payments/mercadopago/preference', authMiddleware, async (req, res) => {
+  try {
+    const { items, customerName, customerLogin, deliveryLocation } = req.body;
+
+    if (!items || !items.length) {
+      return res.status(400).json({ message: 'Pedido vazio.' });
+    }
+
+    const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
+    const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
+
+    const order = await createOrder({
+      customerId: customer?.id || null,
+      customerName: customerName || customer?.name || 'Cliente',
+      customerLogin: customerLogin || customer?.login || req.user?.username || null,
+      deliveryLocation: deliveryLocation || 'Entrega em domicílio',
+      paymentMethod: 'cartao',
+      items,
+      totalValue,
+      status: 'aguardando-pagamento',
+      paymentProvider: 'mercadopago',
+    });
+
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const preference = await createPreference({
+      items,
+      orderId: order.id,
+      backUrls: {
+        success: `${origin}/?payment=success`,
+        failure: `${origin}/?payment=failure`,
+        pending: `${origin}/?payment=pending`,
+      },
+      notificationUrl: `${origin}/api/payments/mercadopago/webhook`,
+    });
+
+    await updateOrderPaymentReference(order.id, preference.id);
+
+    return res.status(201).json({ order, initPoint: preference.initPoint });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Erro ao iniciar pagamento com cartão.' });
+  }
+});
+
+app.post('/api/payments/mercadopago/webhook', async (req, res) => {
+  try {
+    const paymentId = req.body?.data?.id || req.query['data.id'] || req.query.id;
+    if (!paymentId) {
+      return res.status(200).json({ received: true });
+    }
+
+    const payment = await getPayment(paymentId);
+    const orderId = payment.external_reference;
+
+    if (orderId) {
+      if (payment.status === 'approved') {
+        await markOrderPaid(Number(orderId));
+      } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
+        await cancelOrder(Number(orderId));
+      }
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    console.error('Erro ao processar webhook do Mercado Pago:', error.message);
+    return res.status(200).json({ received: true });
   }
 });
 

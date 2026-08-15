@@ -105,6 +105,13 @@
         <a class="button primary" href="#menu">Ver cardápio</a>
       </section>
 
+      <section id="paymentStatusBanner" class="promo-banner container hidden">
+        <div>
+          <span id="paymentStatusTag" class="promo-tag"></span>
+          <h2 id="paymentStatusMessage"></h2>
+        </div>
+      </section>
+
       <section class="promo-banner container" id="promo">
         <div>
           <span class="promo-tag">Promoção</span>
@@ -194,6 +201,22 @@
             <button type="submit" class="button primary full">Confirmar pedido</button>
             <p id="checkoutMessage" class="checkout-message" aria-live="polite"></p>
           </form>
+        </div>
+
+        <div id="pixResult" class="qr-card hidden">
+          <div class="card-title-row">
+            <span class="section-kicker">Pagamento Pix</span>
+            <h3>Escaneie para pagar</h3>
+          </div>
+          <div class="qr-box">
+            <img id="pixQrImage" src="" alt="QR Code Pix" />
+          </div>
+          <label>
+            <span>Pix copia e cola</span>
+            <textarea id="pixCopyPaste" rows="3" readonly></textarea>
+          </label>
+          <button id="pixCopyButton" class="button ghost full" type="button">Copiar código Pix</button>
+          <p class="checkout-message">Pedido #<span id="pixOrderId"></span> registrado! Assim que o pagamento for identificado, o preparo começa.</p>
         </div>
       </section>
 

@@ -80,6 +80,14 @@ const deliveryValue = document.getElementById('deliveryValue');
 const totalValue = document.getElementById('totalValue');
 const checkoutForm = document.getElementById('checkoutForm');
 const checkoutMessage = document.getElementById('checkoutMessage');
+const pixResult = document.getElementById('pixResult');
+const pixQrImage = document.getElementById('pixQrImage');
+const pixCopyPaste = document.getElementById('pixCopyPaste');
+const pixCopyButton = document.getElementById('pixCopyButton');
+const pixOrderId = document.getElementById('pixOrderId');
+const paymentStatusBanner = document.getElementById('paymentStatusBanner');
+const paymentStatusTag = document.getElementById('paymentStatusTag');
+const paymentStatusMessage = document.getElementById('paymentStatusMessage');
 const sidebarMenu = document.getElementById('sidebarMenu');
 const sidebarToggle = document.getElementById('sidebarToggle');
 const sidebarClose = document.getElementById('sidebarClose');
@@ -498,8 +506,27 @@ function logoutCustomer() {
   sidebarLoginMessage.textContent = '';
 }
 
+async function submitOrder(endpoint, payload, session) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session.token ? { Authorization: `Bearer ${session.token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Não foi possível confirmar o pedido.');
+  }
+
+  return data;
+}
+
 checkoutForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  pixResult.classList.add('hidden');
 
   try {
     const settings = await fetch('/api/store/settings').then((response) => response.ok ? response.json() : null);
@@ -521,6 +548,7 @@ checkoutForm.addEventListener('submit', async (event) => {
   const formData = new FormData(checkoutForm);
   const customerName = formData.get('name')?.toString().trim();
   const session = getSession();
+  const paymentMethod = formData.get('payment')?.toString() || 'pix';
   const orderItems = state.cart.map((item) => ({
     name: item.name,
     description: `${item.mode} • ${item.split} • ${item.extras.join(', ') || 'Sem extras'}`,
@@ -533,35 +561,79 @@ checkoutForm.addEventListener('submit', async (event) => {
     customerName,
     customerLogin: session.user?.username || null,
     deliveryLocation: formData.get('address')?.toString().trim(),
-    paymentMethod: formData.get('payment')?.toString() || 'pix',
+    paymentMethod,
     items: orderItems,
   };
 
-  fetch('/api/orders', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(session.token ? { Authorization: `Bearer ${session.token}` } : {}),
-    },
-    body: JSON.stringify(payload),
-  })
-    .then(async (response) => {
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Não foi possível confirmar o pedido.');
-      }
-
-      checkoutMessage.textContent = `Pedido confirmado para ${customerName || 'cliente'}! ID do pedido: ${data.order.id}.`;
+  try {
+    if (paymentMethod === 'cartao') {
+      const data = await submitOrder('/api/payments/mercadopago/preference', payload, session);
+      checkoutMessage.textContent = 'Redirecionando para o pagamento seguro do Mercado Pago...';
       checkoutMessage.style.color = '#1d9d5c';
+      window.location.href = data.initPoint;
+      return;
+    }
+
+    if (paymentMethod === 'pix') {
+      const data = await submitOrder('/api/payments/pix', payload, session);
+      pixOrderId.textContent = data.order.id;
+      pixQrImage.src = data.qrCodeDataUrl;
+      pixCopyPaste.value = data.pixPayload;
+      pixResult.classList.remove('hidden');
+      pixResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      checkoutMessage.textContent = '';
       state.cart = [];
       renderCart();
       checkoutForm.reset();
-    })
-    .catch((error) => {
-      checkoutMessage.textContent = error.message;
-      checkoutMessage.style.color = '#d71920';
-    });
+      return;
+    }
+
+    const data = await submitOrder('/api/orders', payload, session);
+    checkoutMessage.textContent = `Pedido confirmado para ${customerName || 'cliente'}! ID do pedido: ${data.order.id}.`;
+    checkoutMessage.style.color = '#1d9d5c';
+    state.cart = [];
+    renderCart();
+    checkoutForm.reset();
+  } catch (error) {
+    checkoutMessage.textContent = error.message;
+    checkoutMessage.style.color = '#d71920';
+  }
 });
+
+if (pixCopyButton) {
+  pixCopyButton.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(pixCopyPaste.value);
+      pixCopyButton.textContent = 'Código copiado!';
+      setTimeout(() => {
+        pixCopyButton.textContent = 'Copiar código Pix';
+      }, 2000);
+    } catch {
+      pixCopyPaste.select();
+      document.execCommand('copy');
+    }
+  });
+}
+
+(function showPaymentReturnBanner() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('payment');
+  if (!status || !paymentStatusBanner) return;
+
+  const messages = {
+    success: { tag: 'Pagamento aprovado', message: 'Seu pagamento foi aprovado! Já enviamos seu pedido para o preparo.', color: '#1d9d5c' },
+    pending: { tag: 'Pagamento pendente', message: 'Seu pagamento está sendo processado. Assim que for aprovado, o preparo começa.', color: '#d98b1d' },
+    failure: { tag: 'Pagamento não aprovado', message: 'Não foi possível concluir o pagamento. Tente novamente ou escolha outra forma de pagamento.', color: '#cf2f3d' },
+  };
+
+  const info = messages[status];
+  if (!info) return;
+
+  paymentStatusTag.textContent = info.tag;
+  paymentStatusMessage.textContent = info.message;
+  paymentStatusBanner.style.borderColor = info.color;
+  paymentStatusBanner.classList.remove('hidden');
+})();
 
 sidebarToggle.addEventListener('click', () => {
   const isOpen = sidebarMenu.classList.contains('open');

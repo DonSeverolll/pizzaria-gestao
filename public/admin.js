@@ -26,10 +26,29 @@ const statusMap = {
 };
 
 const orderStatusMap = {
+  'aguardando-pagamento': 'Aguardando pagamento',
   'em-preparo': 'Em preparo',
   pronto: 'Pronto',
   'em-entrega': 'Em entrega',
   entregue: 'Entregue',
+  cancelado: 'Cancelado',
+};
+
+const orderActionsByStatus = {
+  'aguardando-pagamento': [
+    { status: 'em-preparo', label: 'Confirmar pagamento', tone: 'primary' },
+    { status: 'cancelado', label: 'Cancelar pedido', tone: '' },
+  ],
+  'em-preparo': [
+    { status: 'pronto', label: 'Pronto', tone: 'primary' },
+    { status: 'em-entrega', label: 'Em entrega', tone: '' },
+  ],
+  pronto: [
+    { status: 'em-entrega', label: 'Em entrega', tone: 'primary' },
+  ],
+  'em-entrega': [
+    { status: 'entregue', label: 'Entregue', tone: 'primary' },
+  ],
 };
 
 function setToken(token) {
@@ -254,17 +273,27 @@ async function loadProducts() {
   }
 }
 
+const orderStatusPill = {
+  'aguardando-pagamento': 'reserved',
+  'em-preparo': 'cleaning',
+  pronto: 'cleaning',
+  'em-entrega': 'cleaning',
+  entregue: 'available',
+  cancelado: 'occupied',
+};
+
 function renderOrders(orders) {
   if (!ordersList) return;
 
   ordersList.innerHTML = orders.length
     ? orders
-        .map(
-          (order) => `
+        .map((order) => {
+          const actions = orderActionsByStatus[order.status] || [];
+          return `
             <article class="table-card">
               <div class="row">
                 <h3>Pedido #${order.id}</h3>
-                <span class="table-status" data-status="available">${orderStatusMap[order.status] || order.status}</span>
+                <span class="table-status" data-status="${orderStatusPill[order.status] || 'available'}">${orderStatusMap[order.status] || order.status}</span>
               </div>
               <div class="capacity"><strong>Cliente:</strong> ${order.customer_name || 'Cliente'}</div>
               <div class="capacity"><strong>Local:</strong> ${order.delivery_location || 'Sem endereço'}</div>
@@ -272,12 +301,17 @@ function renderOrders(orders) {
               <div class="capacity"><strong>Valor total:</strong> R$ ${Number(order.total_value || 0).toFixed(2)}</div>
               <div class="capacity"><strong>Itens:</strong> ${order.items?.map((item) => `${item.product_name} x ${item.quantity}`).join(', ') || 'Nenhum item'}</div>
               <div class="type-actions">
-                <button class="inline-button primary" data-order-status="pronto" data-order-id="${order.id}" type="button">Pronto</button>
-                <button class="inline-button" data-order-status="em-entrega" data-order-id="${order.id}" type="button">Entrega</button>
+                ${actions
+                  .map(
+                    (action) => `
+                      <button class="inline-button ${action.tone}" data-order-status="${action.status}" data-order-id="${order.id}" type="button">${action.label}</button>
+                    `
+                  )
+                  .join('') || '<span class="muted-text">Sem ações disponíveis</span>'}
               </div>
             </article>
-          `
-        )
+          `;
+        })
         .join('')
     : '<p>Nenhum pedido encontrado.</p>';
 
@@ -285,6 +319,11 @@ function renderOrders(orders) {
     button.addEventListener('click', async () => {
       const status = button.dataset.orderStatus;
       const id = button.dataset.orderId;
+
+      if (status === 'cancelado' && !confirm(`Cancelar o pedido #${id}?`)) {
+        return;
+      }
+
       await apiFetch(`/api/orders/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
