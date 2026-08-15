@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Configurações - PL Pizzas</title>
+    <title>Configurações - PL Pizza</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -14,9 +14,9 @@
       <button id="adminMenuToggle" class="admin-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu administrativo">☰</button>
       <aside id="adminSidebar" class="admin-sidebar open">
         <div class="admin-brand">
-          <img class="brand-logo brand-logo-admin" src="/logo-pl-real.png" alt="Logo PL Pizzas" />
+          <img class="brand-logo brand-logo-admin" src="/logo-pl-real.png" alt="Logo PL Pizza" />
           <div>
-            <strong>PL Pizzas</strong>
+            <strong>PL Pizza</strong>
             <small>Admin</small>
           </div>
         </div>
@@ -58,8 +58,13 @@
 
             <div class="two-columns">
               <div class="form-group">
-                <label for="logoUrl">URL da logo</label>
-                <input id="logoUrl" name="logoUrl" type="text" />
+                <label for="logoUrl">Logo da loja</label>
+                <input id="logoUrl" name="logoUrl" type="text" placeholder="URL da imagem" />
+                <div class="upload-row" style="margin-top: 8px;">
+                  <input id="logoFile" type="file" accept="image/*" />
+                  <button id="uploadLogoButton" class="button ghost" type="button">Enviar logo</button>
+                </div>
+                <img id="logoPreview" class="logo-preview hidden" src="" alt="Pré-visualização da logo" />
               </div>
               <div class="form-group">
                 <label for="pixKey">Chave Pix</label>

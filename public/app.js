@@ -107,6 +107,7 @@ const sidebarLogout = document.getElementById('sidebarLogout');
 const adminPanelButton = document.getElementById('adminPanelButton');
 const storeStatusBanner = document.getElementById('storeStatusBanner');
 const storeBrandName = document.getElementById('storeBrandName');
+const storeBrandLogo = document.getElementById('storeBrandLogo');
 const storeBrandSubtitle = document.getElementById('storeBrandSubtitle');
 const storeAddressText = document.getElementById('storeAddressText');
 const modeOptions = document.querySelectorAll('[data-mode]');
@@ -264,7 +265,10 @@ async function loadStoreSettings() {
     renderCart();
 
     if (storeBrandName) {
-      storeBrandName.textContent = data.companyName || 'PlPizza';
+      storeBrandName.textContent = data.companyName || 'PL Pizza';
+    }
+    if (storeBrandLogo && data.logoUrl) {
+      storeBrandLogo.src = data.logoUrl;
     }
     if (storeBrandSubtitle) {
       storeBrandSubtitle.textContent = data.phone ? `Contato: ${data.phone}` : 'Pizza artesanal';

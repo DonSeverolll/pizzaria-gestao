@@ -6,6 +6,9 @@ const storeMessage = document.getElementById('storeMessage');
 const cashMessage = document.getElementById('cashMessage');
 const adminMenuToggle = document.getElementById('adminMenuToggle');
 const adminSidebar = document.getElementById('adminSidebar');
+const logoFile = document.getElementById('logoFile');
+const uploadLogoButton = document.getElementById('uploadLogoButton');
+const logoPreview = document.getElementById('logoPreview');
 
 const token = localStorage.getItem('pizzaria-token');
 if (!token) {
@@ -32,7 +35,7 @@ async function apiFetch(path, options = {}) {
 
 async function loadSettings() {
   const data = await apiFetch('/api/store/settings');
-  settingsForm.companyName.value = data.company_name || 'PL Pizzas';
+  settingsForm.companyName.value = data.company_name || 'PL Pizza';
   settingsForm.logoUrl.value = data.logo_url || '/logo-pl-real.png';
   settingsForm.phone.value = data.phone || '';
   settingsForm.address.value = data.address || '';
@@ -42,6 +45,17 @@ async function loadSettings() {
   settingsForm.isOpen.checked = Boolean(Number(data.is_open ?? 1));
   settingsForm.deliveryFee.value = data.delivery_fee ?? 9.9;
   settingsForm.deliveryRule.value = data.delivery_rule || 'fixed';
+  showLogoPreview(settingsForm.logoUrl.value);
+}
+
+function showLogoPreview(url) {
+  if (!logoPreview) return;
+  if (url) {
+    logoPreview.src = url;
+    logoPreview.classList.remove('hidden');
+  } else {
+    logoPreview.classList.add('hidden');
+  }
 }
 
 async function loadHours() {
@@ -182,6 +196,45 @@ if (cashMovementForm) {
       cashMovementForm.reset();
     } catch (error) {
       cashMessage.textContent = error.message;
+    }
+  });
+}
+
+if (uploadLogoButton) {
+  uploadLogoButton.addEventListener('click', async () => {
+    const file = logoFile.files[0];
+    if (!file) {
+      storeMessage.textContent = 'Escolha um arquivo de imagem antes de enviar.';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      uploadLogoButton.disabled = true;
+      uploadLogoButton.textContent = 'Enviando...';
+
+      // FormData define o proprio Content-Type (com boundary), por isso nao usa apiFetch.
+      const res = await fetch('/api/uploads/image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Erro ao enviar a logo.');
+      }
+
+      settingsForm.logoUrl.value = data.url;
+      showLogoPreview(data.url);
+      storeMessage.textContent = 'Logo enviada! Clique em "Salvar configurações" para aplicar no site.';
+    } catch (error) {
+      storeMessage.textContent = error.message;
+    } finally {
+      uploadLogoButton.disabled = false;
+      uploadLogoButton.textContent = 'Enviar logo';
     }
   });
 }

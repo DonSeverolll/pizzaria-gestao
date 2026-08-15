@@ -504,7 +504,7 @@ app.get('/api/store/public-settings', async (req, res) => {
   try {
     const settings = await getStoreSettings();
     if (!settings) {
-      return res.json({ companyName: 'PlPizza', isOpen: true, deliveryFee: 0, deliveryRule: 'fixed' });
+      return res.json({ companyName: 'PL Pizza', isOpen: true, deliveryFee: 0, deliveryRule: 'fixed' });
     }
 
     return res.json({
