@@ -151,7 +151,11 @@ app.post('/api/auth/login', async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Erro ao autenticar.', error: error.message });
+    // 503 quando falta JWT_SECRET no ambiente (backend/auth.js).
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode ? error.message : 'Erro ao autenticar.',
+      error: error.statusCode ? undefined : error.message,
+    });
   }
 });
 

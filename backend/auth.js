@@ -2,18 +2,33 @@ const jwt = require('jsonwebtoken');
 
 const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 
-// O fallback de desenvolvimento e publico (o repositorio e aberto), entao em
-// producao ele nao pode ser aceito: com ele qualquer pessoa forjaria um token
-// de admin. Falha no boot e melhor do que subir um painel destrancado.
-if (isProduction && !process.env.JWT_SECRET) {
-  throw new Error(
-    'JWT_SECRET nao configurado. Cadastre a variavel de ambiente antes de subir em producao.'
-  );
+const MISSING_SECRET_MESSAGE =
+  'JWT_SECRET nao configurado no ambiente. Cadastre a variavel antes de usar o painel.';
+
+// O fallback de desenvolvimento esta num repositorio publico: aceita-lo em
+// producao deixaria qualquer pessoa forjar um token de admin. Em vez de
+// derrubar o processo no boot (o que tiraria do ar tambem o cardapio e o
+// checkout), o segredo so e exigido na hora de emitir/validar token: a loja
+// continua vendendo e apenas o acesso ao painel fica bloqueado, com log claro.
+const secretMissingInProduction = isProduction && !process.env.JWT_SECRET;
+
+if (secretMissingInProduction) {
+  console.error(`[SEGURANCA] ${MISSING_SECRET_MESSAGE} O login do painel ficara indisponivel.`);
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pizzaria-dev-secret';
 
+function requireSecret() {
+  if (secretMissingInProduction) {
+    const error = new Error(MISSING_SECRET_MESSAGE);
+    error.statusCode = 503;
+    throw error;
+  }
+}
+
 function signToken(user) {
+  requireSecret();
+
   return jwt.sign(
     {
       id: user.id,
@@ -34,6 +49,10 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ message: 'Token de autenticação ausente.' });
   }
 
+  if (secretMissingInProduction) {
+    return res.status(503).json({ message: MISSING_SECRET_MESSAGE });
+  }
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
@@ -49,7 +68,7 @@ function optionalAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-  if (!token) {
+  if (!token || secretMissingInProduction) {
     req.user = null;
     return next();
   }
