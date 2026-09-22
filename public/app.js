@@ -67,7 +67,9 @@ const state = {
   items: [],
   cart: [],
   deliveryFee: 9.9,
+  freeDeliveryMin: 80,
   isOpen: true,
+  extras: [],
 };
 
 const menuGrid = document.getElementById('menuGrid');
@@ -261,6 +263,7 @@ async function loadStoreSettings() {
     const data = await fetchPublicSettings();
 
     state.deliveryFee = Number(data.deliveryFee || 0);
+    state.freeDeliveryMin = Number(data.freeDeliveryMin ?? 80);
     state.isOpen = data.isOpen;
     renderCart();
 
@@ -320,18 +323,77 @@ function resolveItemImage(item) {
 }
 
 function buildCartKey(entry) {
-  return `${entry.id}-${entry.mode}-${entry.split}-${(entry.extras || []).join('|')}`;
+  return `${entry.id}-${entry.size || ''}-${entry.dough || ''}-${(entry.extraIds || []).join('|')}`;
+}
+
+// Precos de tamanho vem do painel (menu_items.size_prices).
+function parseSizePrices(item) {
+  if (!item.size_prices) return {};
+  try {
+    const parsed = JSON.parse(item.size_prices);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const SIZE_LABELS = { broto: 'Broto', media: 'Média', grande: 'Grande', gigante: 'Gigante' };
+
+function availableSizes(item) {
+  const sizePrices = parseSizePrices(item);
+  return Object.entries(sizePrices)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => ({ key, label: SIZE_LABELS[key] || key, price: Number(value) }));
+}
+
+// As categorias do cardapio variam entre singular e plural ("Pizza"/"Pizzas"),
+// entao a comparacao normaliza acento, caixa e plural.
+// Mesma regra em backend/pricing.js.
+function normalizeCategory(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/s$/, '');
+}
+
+// Um adicional sem categoria vale para tudo; com categoria, so para a dela.
+function availableExtras(item) {
+  return state.extras.filter(
+    (extra) => !extra.category || normalizeCategory(extra.category) === normalizeCategory(item.category)
+  );
+}
+
+function availableDoughs(item) {
+  return String(item.dough_type || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function unitPriceFor(item, { size, extraIds = [] }) {
+  const sizes = availableSizes(item);
+  const chosenSize = sizes.find((entry) => entry.key === size);
+  const base = chosenSize ? chosenSize.price : Number(item.price || 0);
+  const extrasTotal = extraIds
+    .map((id) => state.extras.find((extra) => extra.id === id))
+    .filter(Boolean)
+    .reduce((sum, extra) => sum + Number(extra.price || 0), 0);
+
+  return base + extrasTotal;
 }
 
 function addToCart(item, options = {}) {
+  const extraIds = options.extraIds || [];
   const cartEntry = {
     id: item.id,
     name: item.name,
-    price: Number(item.price),
+    price: unitPriceFor(item, { size: options.size, extraIds }),
     image: resolveItemImage(item),
-    mode: options.mode || 'tradicional',
-    split: options.split || 'normal',
-    extras: options.extras || [],
+    size: options.size || null,
+    dough: options.dough || null,
+    extraIds,
   };
 
   const key = buildCartKey(cartEntry);
@@ -344,6 +406,34 @@ function addToCart(item, options = {}) {
   }
 
   renderCart();
+}
+
+async function loadSiteQrCode() {
+  const image = document.getElementById('siteQrCode');
+  const link = document.getElementById('siteQrLink');
+  if (!image) return;
+
+  try {
+    const data = await fetch(`${API_BASE}/store/qrcode`).then((response) => response.json());
+    image.src = data.dataUrl;
+    if (link) link.href = data.url;
+  } catch {
+    image.closest('.qr-card')?.classList.add('hidden');
+  }
+}
+
+function describeCartEntry(entry) {
+  const extraNames = (entry.extraIds || [])
+    .map((id) => state.extras.find((extra) => extra.id === id)?.name)
+    .filter(Boolean);
+
+  return [
+    entry.size ? SIZE_LABELS[entry.size] || entry.size : null,
+    entry.dough || null,
+    extraNames.length ? extraNames.join(', ') : null,
+  ]
+    .filter(Boolean)
+    .join(' • ');
 }
 
 function renderCart() {
@@ -360,7 +450,10 @@ function renderCart() {
   }
 
   const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const delivery = isDelivery() && subtotal <= 80 ? state.deliveryFee : 0;
+  // Mesma regra do servidor (backend/pricing.js): a exibicao nao pode divergir do cobrado.
+  const freeFrom = Number(state.freeDeliveryMin ?? 80);
+  const hasFreeDelivery = freeFrom > 0 && subtotal >= freeFrom;
+  const delivery = isDelivery() && !hasFreeDelivery ? state.deliveryFee : 0;
   const total = subtotal + delivery;
 
   if (cartTotalLabel) cartTotalLabel.textContent = toCurrency(total);
@@ -375,7 +468,7 @@ function renderCart() {
               <h4>${item.name}</h4>
               <strong>${toCurrency(item.price * item.quantity)}</strong>
             </div>
-            <div class="cart-meta">${item.mode} • ${item.split === 'metade' ? 'Meia e meia' : 'Normal'}${item.extras.length ? ` • ${item.extras.join(', ')}` : ''}</div>
+            <div class="cart-meta">${describeCartEntry(item) || 'Padrão'}</div>
             <div class="cart-controls">
               <button type="button" data-action="decrease" data-key="${item.key}">−</button>
               <span>${item.quantity}</span>
@@ -468,7 +561,7 @@ function renderMenu() {
     const description = fragment.querySelector('[data-role="description"]');
     const ingredients = fragment.querySelector('[data-role="ingredients"]');
     const button = fragment.querySelector('button');
-    const modeSelect = fragment.querySelector('[data-role="mode"]');
+    const optionsHost = fragment.querySelector('[data-role="options"]');
 
     image.src = resolveItemImage(item);
     image.alt = item.name;
@@ -485,17 +578,77 @@ function renderMenu() {
       });
     }
 
-    const splitName = `split-${item.id}`;
-    fragment.querySelectorAll('input[type="radio"]').forEach((input) => {
-      input.name = splitName;
+    const sizes = availableSizes(item);
+    const doughs = availableDoughs(item);
+    const extras = availableExtras(item);
+
+    if (sizes.length) {
+      const group = document.createElement('div');
+      group.className = 'option-group';
+      group.innerHTML = `
+        <label>
+          <span>Tamanho</span>
+          <select data-role="size">
+            ${sizes.map((size) => `<option value="${size.key}">${size.label} — ${toCurrency(size.price)}</option>`).join('')}
+          </select>
+        </label>
+      `;
+      optionsHost.appendChild(group);
+    }
+
+    if (doughs.length) {
+      const group = document.createElement('div');
+      group.className = 'option-group';
+      group.innerHTML = `
+        <label>
+          <span>Borda / massa</span>
+          <select data-role="dough">
+            ${doughs.map((dough) => `<option value="${dough}">${dough}</option>`).join('')}
+          </select>
+        </label>
+      `;
+      optionsHost.appendChild(group);
+    }
+
+    if (extras.length) {
+      const group = document.createElement('div');
+      group.className = 'option-group';
+      group.innerHTML = `
+        <span>Adicionais</span>
+        <div class="checkbox-row">
+          ${extras
+            .map(
+              (extra) =>
+                `<label><input type="checkbox" data-role="extra" value="${extra.id}" /> ${extra.name} (+${toCurrency(extra.price)})</label>`
+            )
+            .join('')}
+        </div>
+      `;
+      optionsHost.appendChild(group);
+    }
+
+    const sizeSelect = optionsHost.querySelector('[data-role="size"]');
+    const doughSelect = optionsHost.querySelector('[data-role="dough"]');
+
+    // O preco do cartao acompanha o tamanho e os adicionais escolhidos.
+    const refreshPrice = () => {
+      const extraIds = Array.from(optionsHost.querySelectorAll('[data-role="extra"]:checked')).map((input) =>
+        Number(input.value)
+      );
+      price.textContent = toCurrency(unitPriceFor(item, { size: sizeSelect?.value, extraIds }));
+    };
+
+    optionsHost.querySelectorAll('select, input[type="checkbox"]').forEach((control) => {
+      control.addEventListener('change', refreshPrice);
     });
+    refreshPrice();
 
     button.addEventListener('click', () => {
-      const selectedMode = modeSelect.value;
-      const split = fragment.querySelector('input[type="radio"]:checked')?.value || 'normal';
-      const extras = Array.from(fragment.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+      const extraIds = Array.from(optionsHost.querySelectorAll('[data-role="extra"]:checked')).map((input) =>
+        Number(input.value)
+      );
 
-      addToCart(item, { mode: selectedMode, split, extras });
+      addToCart(item, { size: sizeSelect?.value || null, dough: doughSelect?.value || null, extraIds });
       document.getElementById('checkout').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
@@ -505,8 +658,15 @@ function renderMenu() {
 
 async function initMenu() {
   try {
-    const items = await fetchMenu();
+    const [items, extras] = await Promise.all([
+      fetchMenu(),
+      fetch(`${API_BASE}/extras`)
+        .then((response) => (response.ok ? response.json() : []))
+        .catch(() => []),
+    ]);
+
     state.items = items;
+    state.extras = extras;
 
     // A categoria padrão pode não existir no cardápio real; cai para a primeira disponível.
     const availableCategories = [...new Set(items.map((item) => item.category))];
@@ -697,6 +857,7 @@ checkoutForm.addEventListener('submit', async (event) => {
   try {
     const settings = await fetchPublicSettings();
     state.deliveryFee = Number(settings.deliveryFee || 0);
+    state.freeDeliveryMin = Number(settings.freeDeliveryMin ?? 80);
     state.isOpen = settings.isOpen;
     applyStoreOpenState(settings.isOpen);
 
@@ -726,18 +887,22 @@ checkoutForm.addEventListener('submit', async (event) => {
   const customerName = formData.get('name')?.toString().trim();
   const session = getSession();
   const paymentMethod = formData.get('payment')?.toString() || 'pix';
+  // Só identificadores: quem define preço é o servidor (backend/pricing.js).
   const orderItems = state.cart.map((item) => ({
-    name: item.name,
-    description: `${item.mode} • ${item.split} • ${item.extras.join(', ') || 'Sem extras'}`,
+    productId: item.id,
     quantity: item.quantity,
-    price: item.price,
-    itemTotal: item.price * item.quantity,
+    size: item.size,
+    dough: item.dough,
+    extras: item.extraIds,
   }));
 
   const payload = {
     customerName,
+    customerPhone: formData.get('phone')?.toString().trim() || null,
     customerLogin: session.user?.username || null,
     deliveryLocation: resolveDeliveryLocation(formData.get('address')?.toString().trim()),
+    notes: formData.get('notes')?.toString().trim() || null,
+    orderMode: getOrderMode(),
     paymentMethod,
     items: orderItems,
   };
@@ -753,7 +918,7 @@ checkoutForm.addEventListener('submit', async (event) => {
 
     if (paymentMethod === 'pix') {
       const data = await submitOrder('/api/payments/pix', payload, session);
-      pixOrderId.textContent = data.order.id;
+      pixOrderId.textContent = data.order.order_code || data.order.id;
       pixQrImage.src = data.qrCodeDataUrl;
       pixCopyPaste.value = data.pixPayload;
       pixResult.classList.remove('hidden');
@@ -766,7 +931,11 @@ checkoutForm.addEventListener('submit', async (event) => {
     }
 
     const data = await submitOrder('/api/orders', payload, session);
-    checkoutMessage.textContent = `Pedido confirmado para ${customerName || 'cliente'}! ID do pedido: ${data.order.id}.`;
+    const code = data.order.order_code || data.order.id;
+    const retirada = getOrderMode() !== 'delivery';
+    checkoutMessage.textContent = retirada
+      ? `Pedido confirmado! Seu código de retirada é ${code} — informe no balcão.`
+      : `Pedido confirmado para ${customerName || 'cliente'}! Código do pedido: ${code}.`;
     checkoutMessage.style.color = '#1d9d5c';
     state.cart = [];
     renderCart();
@@ -948,3 +1117,4 @@ if (session.token) {
 applyOrderModeUI();
 loadStoreSettings();
 initMenu();
+loadSiteQrCode();

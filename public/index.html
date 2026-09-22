@@ -160,7 +160,7 @@
         </div>
       </section>
 
-      <section id="storeStatusBanner" class="promo-banner container hidden" id="promo">
+      <section id="storeStatusBanner" class="promo-banner container hidden">
         <div>
           <span class="promo-tag">Loja fechada</span>
           <h2>Estamos fechados no momento. Volte em breve para fazer seu pedido.</h2>
@@ -305,12 +305,9 @@
             <h3>Escaneie o QR code</h3>
           </div>
           <div class="qr-box">
-            <img
-              src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http%3A%2F%2Flocalhost%3A3000"
-              alt="QR code do cardápio da PL Pizza"
-            />
+            <img id="siteQrCode" src="" alt="QR code do cardápio da PL Pizza" />
           </div>
-          <a class="button primary full" href="http://localhost:3000" target="_blank" rel="noreferrer">Abrir cardápio</a>
+          <a id="siteQrLink" class="button primary full" href="/" target="_blank" rel="noreferrer">Abrir cardápio</a>
         </div>
 
         <div class="visit-card" id="local">
@@ -347,33 +344,9 @@
           <p class="description" data-role="description"></p>
           <div class="tags" data-role="ingredients"></div>
 
-          <div class="option-group">
-            <label>
-              <span>Tipo da pizza</span>
-              <select data-role="mode">
-                <option value="tradicional">Tradicional</option>
-                <option value="integral">Integral</option>
-                <option value="fina">Massa fina</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="option-group">
-            <span>Metade a metade</span>
-            <div class="split-row">
-              <label><input type="radio" name="split-{{id}}" value="normal" checked /> Normal</label>
-              <label><input type="radio" name="split-{{id}}" value="metade" /> Meia e meia</label>
-            </div>
-          </div>
-
-          <div class="option-group">
-            <span>Borda e extras</span>
-            <div class="checkbox-row">
-              <label><input type="checkbox" value="catupiry" /> Catupiry</label>
-              <label><input type="checkbox" value="bacon" /> Bacon</label>
-              <label><input type="checkbox" value="cheddar" /> Cheddar</label>
-            </div>
-          </div>
+          <!-- As opcoes sao montadas em renderMenu() a partir do que o produto
+               realmente tem cadastrado (tamanhos, borda, adicionais). -->
+          <div data-role="options"></div>
 
           <button class="button primary full" type="button">Adicionar ao pedido</button>
         </div>

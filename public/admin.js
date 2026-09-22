@@ -292,12 +292,14 @@ function renderOrders(orders) {
           return `
             <article class="table-card">
               <div class="row">
-                <h3>Pedido #${order.id}</h3>
+                <h3>${order.order_code || `Pedido #${order.id}`}</h3>
                 <span class="table-status" data-status="${orderStatusPill[order.status] || 'available'}">${orderStatusMap[order.status] || order.status}</span>
               </div>
               <div class="capacity"><strong>Cliente:</strong> ${order.customer_name || 'Cliente'}</div>
+              ${order.customer_phone ? `<div class="capacity"><strong>Telefone:</strong> <a href="tel:${order.customer_phone}">${order.customer_phone}</a></div>` : ''}
               <div class="capacity"><strong>Local:</strong> ${order.delivery_location || 'Sem endereço'}</div>
-              <div class="capacity"><strong>Pagamento:</strong> ${order.payment_method || '—'}</div>
+              <div class="capacity"><strong>Pagamento:</strong> ${order.payment_method || '—'}${order.origin === 'balcao' ? ' (balcão)' : ''}</div>
+              ${order.notes ? `<div class="capacity"><strong>Observações:</strong> ${order.notes}</div>` : ''}
               <div class="capacity"><strong>Valor total:</strong> R$ ${Number(order.total_value || 0).toFixed(2)}</div>
               <div class="capacity"><strong>Itens:</strong> ${order.items?.map((item) => `${item.product_name} x ${item.quantity}`).join(', ') || 'Nenhum item'}</div>
               <div class="type-actions">

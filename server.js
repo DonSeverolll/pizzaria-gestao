@@ -44,8 +44,14 @@ const {
   addInventoryMovement,
   getInventoryMovements,
   getSalesReport,
+  getExtras,
+  createExtra,
+  updateExtra,
+  deleteExtra,
+  getOrderByCode,
 } = require('./backend/db');
-const { signToken, authMiddleware, requireAdmin, requireAuth } = require('./backend/auth');
+const { signToken, authMiddleware, optionalAuth, requireAdmin, requireAuth } = require('./backend/auth');
+const { priceOrder } = require('./backend/pricing');
 const { uploadImage } = require('./backend/storage');
 const { buildPixPayload, generatePixQrCode } = require('./backend/pix');
 const { createPreference, getPayment } = require('./backend/mercadopago');
@@ -267,6 +273,91 @@ app.delete('/api/products/:id', authMiddleware, requireAdmin, async (req, res) =
   }
 });
 
+// QR code do proprio site, gerado no servidor: antes era um link fixo para
+// localhost:3000 apontando para um servico externo.
+app.get('/api/store/qrcode', async (req, res) => {
+  try {
+    const siteUrl = `${req.protocol}://${req.get('host')}`;
+    return res.json({ url: siteUrl, dataUrl: await generatePixQrCode(siteUrl) });
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao gerar QR code.', error: error.message });
+  }
+});
+
+app.get('/api/extras', async (req, res) => {
+  try {
+    const extras = await getExtras({ activeOnly: true });
+    res.json(extras.map(({ id, name, price, category }) => ({ id, name, price: Number(price), category })));
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar adicionais.', error: error.message });
+  }
+});
+
+app.get('/api/admin/extras', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    res.json(await getExtras());
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar adicionais.', error: error.message });
+  }
+});
+
+app.post('/api/admin/extras', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { name, price, category } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: 'Nome do adicional é obrigatório.' });
+    }
+    return res.status(201).json(await createExtra({ name, price, category }));
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao criar adicional.', error: error.message });
+  }
+});
+
+app.patch('/api/admin/extras/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const updated = await updateExtra(Number(req.params.id), req.body || {});
+    if (!updated) {
+      return res.status(404).json({ message: 'Adicional não encontrado.' });
+    }
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao atualizar adicional.', error: error.message });
+  }
+});
+
+app.delete('/api/admin/extras/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    await deleteExtra(Number(req.params.id));
+    return res.status(204).end();
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao excluir adicional.', error: error.message });
+  }
+});
+
+// Acompanhamento publico do pedido pelo codigo (balcao, cliente e chatbot).
+app.get('/api/orders/code/:code', async (req, res) => {
+  try {
+    const order = await getOrderByCode(req.params.code);
+    if (!order) {
+      return res.status(404).json({ message: 'Pedido não encontrado com esse código.' });
+    }
+
+    const items = await getOrderItemsByOrder(order.id);
+    return res.json({
+      orderCode: order.order_code,
+      status: order.status,
+      customerName: order.customer_name,
+      deliveryLocation: order.delivery_location,
+      paymentMethod: order.payment_method,
+      total: Number(order.total_value || 0),
+      createdAt: order.created_at,
+      items: items.map((item) => ({ name: item.product_name, quantity: item.quantity })),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao consultar pedido.', error: error.message });
+  }
+});
+
 app.post('/api/uploads/image', authMiddleware, requireAdmin, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -339,64 +430,33 @@ app.patch('/api/tables/:id/status', authMiddleware, requireAdmin, async (req, re
   }
 });
 
-app.post('/api/orders', authMiddleware, async (req, res) => {
+app.post('/api/orders', optionalAuth, async (req, res) => {
   try {
-    const { items, customerName, customerLogin, deliveryLocation, paymentMethod } = req.body;
+    const { priced, orderBase } = await prepareOrderFromRequest(req);
 
-    if (!items || !items.length) {
-      return res.status(400).json({ message: 'Pedido vazio.' });
-    }
-
-    if (!(await isStoreOpen())) {
-      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
-    }
-
-    const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
-    const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
     const order = await createOrder({
-      customerId: customer?.id || null,
-      customerName: customerName || customer?.name || 'Cliente',
-      customerLogin: customerLogin || customer?.login || req.user?.username || null,
-      deliveryLocation: deliveryLocation || 'Entrega em domicílio',
-      paymentMethod: paymentMethod || 'pix',
-      items,
-      totalValue,
+      ...orderBase,
+      paymentMethod: req.body?.paymentMethod || 'dinheiro',
     });
 
-    return res.status(201).json({ order });
+    return res.status(201).json({ order, resumo: priced });
   } catch (error) {
-    return res.status(500).json({ message: 'Erro ao criar pedido.', error: error.message });
+    return sendOrderError(res, error, 'Erro ao criar pedido.');
   }
 });
 
-app.post('/api/payments/pix', authMiddleware, async (req, res) => {
+app.post('/api/payments/pix', optionalAuth, async (req, res) => {
   try {
-    const { items, customerName, customerLogin, deliveryLocation } = req.body;
-
-    if (!items || !items.length) {
-      return res.status(400).json({ message: 'Pedido vazio.' });
-    }
-
     const settings = await getStoreSettings();
-    if (settings && !Number(settings.is_open)) {
-      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
-    }
-
     if (!settings?.pix_key) {
       return res.status(400).json({ message: 'Chave Pix da loja ainda não foi configurada em Configurações.' });
     }
 
-    const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
-    const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
+    const { priced, orderBase } = await prepareOrderFromRequest(req);
 
     const order = await createOrder({
-      customerId: customer?.id || null,
-      customerName: customerName || customer?.name || 'Cliente',
-      customerLogin: customerLogin || customer?.login || req.user?.username || null,
-      deliveryLocation: deliveryLocation || 'Entrega em domicílio',
+      ...orderBase,
       paymentMethod: 'pix',
-      items,
-      totalValue,
       status: 'aguardando-pagamento',
       paymentProvider: 'pix-direto',
     });
@@ -405,48 +465,38 @@ app.post('/api/payments/pix', authMiddleware, async (req, res) => {
       pixKey: settings.pix_key,
       merchantName: settings.pix_owner_name || settings.company_name,
       merchantCity: settings.pix_city || 'BRASIL',
-      amount: totalValue,
-      txid: `PEDIDO${order.id}`,
+      amount: priced.total,
+      txid: order.order_code ? order.order_code.replace('-', '') : `PEDIDO${order.id}`,
     });
 
     const qrCodeDataUrl = await generatePixQrCode(pixPayload);
 
-    return res.status(201).json({ order, pixPayload, qrCodeDataUrl });
+    return res.status(201).json({ order, pixPayload, qrCodeDataUrl, resumo: priced });
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Erro ao gerar pagamento Pix.' });
+    return sendOrderError(res, error, 'Erro ao gerar pagamento Pix.');
   }
 });
 
-app.post('/api/payments/mercadopago/preference', authMiddleware, async (req, res) => {
+app.post('/api/payments/mercadopago/preference', optionalAuth, async (req, res) => {
   try {
-    const { items, customerName, customerLogin, deliveryLocation } = req.body;
-
-    if (!items || !items.length) {
-      return res.status(400).json({ message: 'Pedido vazio.' });
-    }
-
-    if (!(await isStoreOpen())) {
-      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
-    }
-
-    const totalValue = items.reduce((sum, item) => sum + Number(item.quantity || 1) * Number(item.price || 0), 0);
-    const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
+    const { priced, orderBase } = await prepareOrderFromRequest(req);
 
     const order = await createOrder({
-      customerId: customer?.id || null,
-      customerName: customerName || customer?.name || 'Cliente',
-      customerLogin: customerLogin || customer?.login || req.user?.username || null,
-      deliveryLocation: deliveryLocation || 'Entrega em domicílio',
+      ...orderBase,
       paymentMethod: 'cartao',
-      items,
-      totalValue,
       status: 'aguardando-pagamento',
       paymentProvider: 'mercadopago',
     });
 
+    // A entrega vai como item para o total cobrado bater com o do pedido.
+    const checkoutItems = [...priced.items];
+    if (priced.deliveryFee > 0) {
+      checkoutItems.push({ name: 'Taxa de entrega', quantity: 1, price: priced.deliveryFee });
+    }
+
     const origin = `${req.protocol}://${req.get('host')}`;
     const preference = await createPreference({
-      items,
+      items: checkoutItems,
       orderId: order.id,
       backUrls: {
         success: `${origin}/?payment=success`,
@@ -458,9 +508,9 @@ app.post('/api/payments/mercadopago/preference', authMiddleware, async (req, res
 
     await updateOrderPaymentReference(order.id, preference.id);
 
-    return res.status(201).json({ order, initPoint: preference.initPoint });
+    return res.status(201).json({ order, initPoint: preference.initPoint, resumo: priced });
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Erro ao iniciar pagamento com cartão.' });
+    return sendOrderError(res, error, 'Erro ao iniciar pagamento com cartão.');
   }
 });
 
@@ -498,6 +548,44 @@ async function isStoreOpen() {
 
 const STORE_CLOSED_MESSAGE = 'A loja está fechada no momento e não pode receber pedidos.';
 
+// Monta o pedido a partir da requisicao com os precos calculados no servidor.
+// Usado pelos tres meios de pagamento para nao duplicar regra de negocio.
+async function prepareOrderFromRequest(req) {
+  if (!(await isStoreOpen())) {
+    const closed = new Error(STORE_CLOSED_MESSAGE);
+    closed.statusCode = 409;
+    throw closed;
+  }
+
+  let priced;
+  try {
+    priced = await priceOrder({ items: req.body?.items, orderMode: req.body?.orderMode });
+  } catch (error) {
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const customer = req.user?.role === 'customer' ? await getCustomerByLogin(req.user.username) : null;
+
+  return {
+    priced,
+    orderBase: {
+      customerId: customer?.id || null,
+      customerName: req.body?.customerName || customer?.name || 'Cliente',
+      customerLogin: req.body?.customerLogin || customer?.login || req.user?.username || null,
+      customerPhone: req.body?.customerPhone || null,
+      deliveryLocation: req.body?.deliveryLocation || 'Entrega em domicílio',
+      notes: req.body?.notes || null,
+      items: priced.items,
+      totalValue: priced.total,
+    },
+  };
+}
+
+function sendOrderError(res, error, fallbackMessage) {
+  return res.status(error.statusCode || 500).json({ message: error.message || fallbackMessage });
+}
+
 // Versão pública do perfil da loja: expõe só o que o cardápio precisa.
 // A chave Pix e os dados do titular ficam de fora de propósito.
 app.get('/api/store/public-settings', async (req, res) => {
@@ -515,6 +603,7 @@ app.get('/api/store/public-settings', async (req, res) => {
       isOpen: Boolean(Number(settings.is_open)),
       deliveryFee: Number(settings.delivery_fee || 0),
       deliveryRule: settings.delivery_rule || 'fixed',
+      freeDeliveryMin: Number(settings.free_delivery_min ?? 80),
     });
   } catch (error) {
     return res.status(500).json({ message: 'Erro ao carregar dados da loja.', error: error.message });
