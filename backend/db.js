@@ -47,7 +47,17 @@ if (DB_PROVIDER === 'postgres') {
   }
 }
 
-fs.mkdirSync(dataDir, { recursive: true });
+// Em serverless o disco e somente leitura: criar a pasta no carregamento do
+// modulo derrubava a funcao inteira. So e criada quando o SQLite for mesmo
+// usado (desenvolvimento local).
+function ensureDataDir() {
+  try {
+    fs.mkdirSync(dataDir, { recursive: true });
+  } catch (error) {
+    // Sem permissao de escrita: o SQLite nao sera utilizavel aqui, e quem
+    // chamar recebe o erro na hora de abrir o banco.
+  }
+}
 
 let dbInstance = null;
 let db = null;
@@ -58,6 +68,7 @@ function ensureDb() {
   }
 
   if (!db) {
+    ensureDataDir();
     db = new sqlite3.Database(dbPath);
   }
   return db;
