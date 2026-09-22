@@ -49,8 +49,26 @@ const {
   updateExtra,
   deleteExtra,
   getOrderByCode,
+  getCrmCustomers,
+  getOrdersByPhoneOrName,
+  listUsers,
+  countOwners,
+  createStaffUser,
+  updateStaffUser,
+  deleteStaffUser,
 } = require('./backend/db');
-const { signToken, authMiddleware, optionalAuth, requireAdmin, requireAuth } = require('./backend/auth');
+const {
+  signToken,
+  authMiddleware,
+  optionalAuth,
+
+  requireAuth,
+  requireOwner,
+  requirePermission,
+  isOwner,
+  ROLE_LABELS,
+  ROLE_PERMISSIONS,
+} = require('./backend/auth');
 const { priceOrder } = require('./backend/pricing');
 const { uploadImage } = require('./backend/storage');
 const { buildPixPayload, generatePixQrCode } = require('./backend/pix');
@@ -94,14 +112,19 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(401).json({ message: 'Credenciais inválidas.' });
       }
 
-      const token = signToken({ ...adminUser, role: 'admin', type: 'admin' });
+      // Usa o perfil gravado no banco: forcar 'admin' aqui anularia os perfis.
+      const role = ROLE_PERMISSIONS[adminUser.role] ? adminUser.role : 'admin';
+      const token = signToken({ ...adminUser, role, type: 'staff' });
       return res.json({
         token,
         user: {
           id: adminUser.id,
           username: adminUser.username,
-          role: 'admin',
-          type: 'admin',
+          name: adminUser.name || adminUser.username,
+          role,
+          roleLabel: ROLE_LABELS[role] || role,
+          permissions: ROLE_PERMISSIONS[role],
+          type: 'staff',
         },
       });
     }
@@ -153,10 +176,19 @@ app.post('/api/customers/register', async (req, res) => {
 });
 
 app.get('/api/auth/me', authMiddleware, requireAuth, async (req, res) => {
-  res.json({ user: { id: req.user.id, username: req.user.username, role: req.user.role } });
+  res.json({
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      role: req.user.role,
+      roleLabel: ROLE_LABELS[req.user.role] || req.user.role,
+      permissions: ROLE_PERMISSIONS[req.user.role] || [],
+      isOwner: isOwner(req.user.role),
+    },
+  });
 });
 
-app.get('/api/customers', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/customers', authMiddleware, requirePermission('clientes'), async (req, res) => {
   try {
     const customers = await getCustomers();
     res.json(customers);
@@ -165,7 +197,7 @@ app.get('/api/customers', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/orders', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/orders', authMiddleware, requirePermission('pedidos'), async (req, res) => {
   try {
     const orders = await getOrders();
     const response = [];
@@ -183,7 +215,7 @@ app.get('/api/orders', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.patch('/api/orders/:id/status', authMiddleware, requireAdmin, async (req, res) => {
+app.patch('/api/orders/:id/status', authMiddleware, requirePermission('pedidos'), async (req, res) => {
   try {
     const { status } = req.body;
     const allowedStatuses = ['aguardando-pagamento', 'em-preparo', 'pronto', 'em-entrega', 'entregue', 'cancelado'];
@@ -229,7 +261,7 @@ app.get('/api/me/orders', authMiddleware, requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/products', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/products', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     const product = req.body;
     if (!product?.name || !product?.category || !product?.price) {
@@ -243,7 +275,7 @@ app.post('/api/products', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/products', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/products', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     const products = await getAllMenuItems();
     res.json(products);
@@ -252,7 +284,7 @@ app.get('/api/products', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.patch('/api/products/:id', authMiddleware, requireAdmin, async (req, res) => {
+app.patch('/api/products/:id', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     const updated = await updateProduct(Number(req.params.id), req.body || {});
     if (!updated) {
@@ -264,7 +296,7 @@ app.patch('/api/products/:id', authMiddleware, requireAdmin, async (req, res) =>
   }
 });
 
-app.delete('/api/products/:id', authMiddleware, requireAdmin, async (req, res) => {
+app.delete('/api/products/:id', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     await deleteProduct(Number(req.params.id));
     return res.status(204).end();
@@ -275,6 +307,196 @@ app.delete('/api/products/:id', authMiddleware, requireAdmin, async (req, res) =
 
 // QR code do proprio site, gerado no servidor: antes era um link fixo para
 // localhost:3000 apontando para um servico externo.
+// PDV: venda feita no balcao pelo atendente. Usa o mesmo calculo de preco da
+// vitrine e ja lanca a entrada no caixa aberto, quando houver.
+app.post('/api/pdv/sale', authMiddleware, requirePermission('pdv'), async (req, res) => {
+  try {
+    if (!(await isStoreOpen())) {
+      return res.status(409).json({ message: STORE_CLOSED_MESSAGE });
+    }
+
+    const { items, customerName, paymentMethod, notes } = req.body || {};
+    const metodo = ['dinheiro', 'pix', 'cartao'].includes(paymentMethod) ? paymentMethod : 'dinheiro';
+
+    let priced;
+    try {
+      priced = await priceOrder({ items, orderMode: 'local' });
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    const order = await createOrder({
+      customerName: customerName || 'Venda no balcão',
+      deliveryLocation: 'Consumo no local',
+      paymentMethod: metodo,
+      items: priced.items,
+      totalValue: priced.total,
+      status: 'em-preparo',
+      paymentProvider: 'balcao',
+      notes: notes || null,
+      origin: 'balcao',
+    });
+
+    // Se existe caixa aberto, a venda entra nele automaticamente.
+    let cashMovement = null;
+    const register = await getCashRegister();
+    if (register && register.status === 'open') {
+      const tipo = metodo === 'dinheiro' ? 'entrada' : metodo;
+      cashMovement = await addCashMovement({
+        registerId: register.id,
+        type: tipo,
+        amount: priced.total,
+        method: metodo,
+        description: `Venda balcão ${order.order_code}`,
+      });
+    }
+
+    return res.status(201).json({ order, resumo: priced, lancadoNoCaixa: Boolean(cashMovement) });
+  } catch (error) {
+    return sendOrderError(res, error, 'Erro ao registrar venda no balcão.');
+  }
+});
+
+app.get('/api/crm/customers', authMiddleware, requirePermission('crm'), async (req, res) => {
+  try {
+    const customers = await getCrmCustomers();
+    const totals = customers.reduce(
+      (acc, customer) => {
+        acc.receita += customer.totalSpent;
+        acc.pedidos += customer.orders;
+        acc[customer.segment] = (acc[customer.segment] || 0) + 1;
+        return acc;
+      },
+      { receita: 0, pedidos: 0 }
+    );
+
+    res.json({
+      customers,
+      resumo: {
+        total: customers.length,
+        receita: totals.receita,
+        pedidos: totals.pedidos,
+        ticketMedio: totals.pedidos ? totals.receita / totals.pedidos : 0,
+        novos: totals.novo || 0,
+        recorrentes: totals.recorrente || 0,
+        inativos: totals.inativo || 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao carregar o CRM.', error: error.message });
+  }
+});
+
+app.get('/api/crm/customers/history', authMiddleware, requirePermission('crm'), async (req, res) => {
+  try {
+    const { phone, name } = req.query;
+    if (!phone && !name) {
+      return res.status(400).json({ message: 'Informe telefone ou nome do cliente.' });
+    }
+
+    const orders = await getOrdersByPhoneOrName({ phone, name });
+    const detailed = [];
+    for (const order of orders) {
+      detailed.push({ ...order, items: await getOrderItemsByOrder(order.id) });
+    }
+
+    return res.json(detailed);
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao carregar histórico.', error: error.message });
+  }
+});
+
+const ASSIGNABLE_ROLES = ['dono', 'gerente', 'caixa', 'cozinha'];
+
+app.get('/api/admin/users', authMiddleware, requireOwner, async (req, res) => {
+  try {
+    res.json({ users: await listUsers(), roles: ROLE_LABELS });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao listar funcionários.', error: error.message });
+  }
+});
+
+app.post('/api/admin/users', authMiddleware, requireOwner, async (req, res) => {
+  try {
+    const { username, password, name, role } = req.body || {};
+
+    if (!username || !password || !role) {
+      return res.status(400).json({ message: 'Usuário, senha e perfil são obrigatórios.' });
+    }
+
+    if (!ASSIGNABLE_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Perfil inválido.' });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'A senha precisa ter pelo menos 6 caracteres.' });
+    }
+
+    if (await getUserByUsername(username)) {
+      return res.status(409).json({ message: 'Já existe um funcionário com esse usuário.' });
+    }
+
+    return res.status(201).json(await createStaffUser({ username, password, name, role }));
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao criar funcionário.', error: error.message });
+  }
+});
+
+app.patch('/api/admin/users/:id', authMiddleware, requireOwner, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, role, password } = req.body || {};
+
+    if (role && !ASSIGNABLE_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Perfil inválido.' });
+    }
+
+    if (password && String(password).length < 6) {
+      return res.status(400).json({ message: 'A senha precisa ter pelo menos 6 caracteres.' });
+    }
+
+    // Rebaixar o ultimo dono deixaria a loja sem quem administra funcionarios.
+    const users = await listUsers();
+    const target = users.find((user) => user.id === id);
+    if (!target) {
+      return res.status(404).json({ message: 'Funcionário não encontrado.' });
+    }
+
+    if (role && isOwner(target.role) && !isOwner(role) && (await countOwners()) <= 1) {
+      return res.status(409).json({ message: 'Este é o último dono: promova outro antes de mudar o perfil dele.' });
+    }
+
+    return res.json(await updateStaffUser(id, { name, role, password }));
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao atualizar funcionário.', error: error.message });
+  }
+});
+
+app.delete('/api/admin/users/:id', authMiddleware, requireOwner, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (id === Number(req.user.id)) {
+      return res.status(409).json({ message: 'Você não pode remover a própria conta.' });
+    }
+
+    const users = await listUsers();
+    const target = users.find((user) => user.id === id);
+    if (!target) {
+      return res.status(404).json({ message: 'Funcionário não encontrado.' });
+    }
+
+    if (isOwner(target.role) && (await countOwners()) <= 1) {
+      return res.status(409).json({ message: 'Não é possível remover o último dono da loja.' });
+    }
+
+    await deleteStaffUser(id);
+    return res.status(204).end();
+  } catch (error) {
+    return res.status(500).json({ message: 'Erro ao remover funcionário.', error: error.message });
+  }
+});
+
 app.get('/api/store/qrcode', async (req, res) => {
   try {
     const siteUrl = `${req.protocol}://${req.get('host')}`;
@@ -293,7 +515,7 @@ app.get('/api/extras', async (req, res) => {
   }
 });
 
-app.get('/api/admin/extras', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/admin/extras', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     res.json(await getExtras());
   } catch (error) {
@@ -301,7 +523,7 @@ app.get('/api/admin/extras', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/admin/extras', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/admin/extras', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     const { name, price, category } = req.body;
     if (!name) {
@@ -313,7 +535,7 @@ app.post('/api/admin/extras', authMiddleware, requireAdmin, async (req, res) => 
   }
 });
 
-app.patch('/api/admin/extras/:id', authMiddleware, requireAdmin, async (req, res) => {
+app.patch('/api/admin/extras/:id', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     const updated = await updateExtra(Number(req.params.id), req.body || {});
     if (!updated) {
@@ -325,7 +547,7 @@ app.patch('/api/admin/extras/:id', authMiddleware, requireAdmin, async (req, res
   }
 });
 
-app.delete('/api/admin/extras/:id', authMiddleware, requireAdmin, async (req, res) => {
+app.delete('/api/admin/extras/:id', authMiddleware, requirePermission('produtos'), async (req, res) => {
   try {
     await deleteExtra(Number(req.params.id));
     return res.status(204).end();
@@ -358,7 +580,7 @@ app.get('/api/orders/code/:code', async (req, res) => {
   }
 });
 
-app.post('/api/uploads/image', authMiddleware, requireAdmin, upload.single('image'), async (req, res) => {
+app.post('/api/uploads/image', authMiddleware, requirePermission('produtos'), upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
@@ -371,7 +593,7 @@ app.post('/api/uploads/image', authMiddleware, requireAdmin, upload.single('imag
   }
 });
 
-app.get('/api/tables', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/tables', authMiddleware, requirePermission('mesas'), async (req, res) => {
   try {
     const tables = await getTables();
     const summary = tables.reduce(
@@ -391,7 +613,7 @@ app.get('/api/tables', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/tables', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/tables', authMiddleware, requirePermission('mesas'), async (req, res) => {
   try {
     const { name, capacity } = req.body;
 
@@ -406,7 +628,7 @@ app.post('/api/tables', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.patch('/api/tables/:id/status', authMiddleware, requireAdmin, async (req, res) => {
+app.patch('/api/tables/:id/status', authMiddleware, requirePermission('mesas'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -610,7 +832,7 @@ app.get('/api/store/public-settings', async (req, res) => {
   }
 });
 
-app.get('/api/store/settings', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/store/settings', authMiddleware, requireOwner, async (req, res) => {
   try {
     const settings = await getStoreSettings();
     res.json({
@@ -622,7 +844,7 @@ app.get('/api/store/settings', authMiddleware, requireAdmin, async (req, res) =>
   }
 });
 
-app.post('/api/store/settings', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/store/settings', authMiddleware, requireOwner, async (req, res) => {
   try {
     const settings = await saveStoreSettings(req.body || {});
     res.json({
@@ -634,7 +856,7 @@ app.post('/api/store/settings', authMiddleware, requireAdmin, async (req, res) =
   }
 });
 
-app.get('/api/store/hours', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/store/hours', authMiddleware, requireOwner, async (req, res) => {
   try {
     const hours = await getStoreHours();
     res.json(hours.map((entry) => ({
@@ -646,7 +868,7 @@ app.get('/api/store/hours', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/store/hours', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/store/hours', authMiddleware, requireOwner, async (req, res) => {
   try {
     const hours = Array.isArray(req.body) ? req.body : req.body?.hours || [];
     const saved = await saveStoreHours(hours);
@@ -656,7 +878,7 @@ app.post('/api/store/hours', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/cash/register', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/cash/register', authMiddleware, requirePermission('caixa'), async (req, res) => {
   try {
     const register = await getCashRegister();
     res.json(register || { status: 'closed', movements: [], initial_balance: 0, cash_total: 0, pix_total: 0, card_total: 0, withdrawals: 0 });
@@ -665,7 +887,7 @@ app.get('/api/cash/register', authMiddleware, requireAdmin, async (req, res) => 
   }
 });
 
-app.post('/api/cash/register/open', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/cash/register/open', authMiddleware, requirePermission('caixa'), async (req, res) => {
   try {
     const register = await openCashRegister({
       initialBalance: req.body?.initialBalance || 0,
@@ -678,7 +900,7 @@ app.post('/api/cash/register/open', authMiddleware, requireAdmin, async (req, re
   }
 });
 
-app.post('/api/cash/register/movement', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/cash/register/movement', authMiddleware, requirePermission('caixa'), async (req, res) => {
   try {
     const { registerId, type, amount, method, description } = req.body;
     if (!registerId || !type || !amount) {
@@ -692,7 +914,7 @@ app.post('/api/cash/register/movement', authMiddleware, requireAdmin, async (req
   }
 });
 
-app.post('/api/cash/register/close', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/cash/register/close', authMiddleware, requirePermission('caixa'), async (req, res) => {
   try {
     const { registerId, notes } = req.body;
     if (!registerId) {
@@ -706,7 +928,7 @@ app.post('/api/cash/register/close', authMiddleware, requireAdmin, async (req, r
   }
 });
 
-app.get('/api/inventory', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/inventory', authMiddleware, requirePermission('estoque'), async (req, res) => {
   try {
     const items = await getInventory();
     res.json(items);
@@ -715,7 +937,7 @@ app.get('/api/inventory', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/inventory', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/inventory', authMiddleware, requirePermission('estoque'), async (req, res) => {
   try {
     const { ingredientName, unit, quantity, minimumQuantity } = req.body;
     if (!ingredientName || !unit) {
@@ -729,7 +951,7 @@ app.post('/api/inventory', authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-app.patch('/api/inventory/:id', authMiddleware, requireAdmin, async (req, res) => {
+app.patch('/api/inventory/:id', authMiddleware, requirePermission('estoque'), async (req, res) => {
   try {
     const updated = await updateInventoryItem(Number(req.params.id), req.body || {});
     if (!updated) {
@@ -741,7 +963,7 @@ app.patch('/api/inventory/:id', authMiddleware, requireAdmin, async (req, res) =
   }
 });
 
-app.delete('/api/inventory/:id', authMiddleware, requireAdmin, async (req, res) => {
+app.delete('/api/inventory/:id', authMiddleware, requirePermission('estoque'), async (req, res) => {
   try {
     await deleteInventoryItem(Number(req.params.id));
     return res.status(204).end();
@@ -750,7 +972,7 @@ app.delete('/api/inventory/:id', authMiddleware, requireAdmin, async (req, res) 
   }
 });
 
-app.post('/api/inventory/:id/movement', authMiddleware, requireAdmin, async (req, res) => {
+app.post('/api/inventory/:id/movement', authMiddleware, requirePermission('estoque'), async (req, res) => {
   try {
     const { movementType, quantity, notes } = req.body;
     const allowed = ['entrada', 'saida', 'ajuste', 'perda'];
@@ -769,7 +991,7 @@ app.post('/api/inventory/:id/movement', authMiddleware, requireAdmin, async (req
   }
 });
 
-app.get('/api/inventory/:id/movements', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/inventory/:id/movements', authMiddleware, requirePermission('estoque'), async (req, res) => {
   try {
     const item = (await getInventory()).find((entry) => entry.id === Number(req.params.id));
     if (!item) {
@@ -783,7 +1005,7 @@ app.get('/api/inventory/:id/movements', authMiddleware, requireAdmin, async (req
   }
 });
 
-app.get('/api/reports/sales', authMiddleware, requireAdmin, async (req, res) => {
+app.get('/api/reports/sales', authMiddleware, requirePermission('lucro'), async (req, res) => {
   try {
     const { period, from, to } = req.query;
     const report = await getSalesReport({ period: period || 'today', from, to });

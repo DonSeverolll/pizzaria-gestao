@@ -15,6 +15,171 @@
   --warning: #d98b1d;
   --danger: #cf2f3d;
   --shadow: rgba(18, 18, 22, 0.08);
+  --bg-top: #fffaf7;
+  --bg-bottom: #ffffff;
+  --sidebar-bg: rgba(255, 255, 255, 0.96);
+  --toggle-bg: #ececec;
+  --toggle-text: #3b3b3b;
+}
+
+/* O vermelho da marca e mantido nos dois temas; o que muda sao as superficies. */
+:root[data-theme='dark'] {
+  --bg: #141316;
+  --panel: #1c1b20;
+  --surface: #232128;
+  --red-soft: #3a1f23;
+  --text: #f4f2ef;
+  --muted: #a7a2ae;
+  --line: #322f38;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --bg-top: #16151a;
+  --bg-bottom: #0f0e12;
+  --sidebar-bg: rgba(28, 27, 32, 0.97);
+  --toggle-bg: #2a2830;
+  --toggle-text: #f4f2ef;
+}
+
+.pdv-layout {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.pdv-search {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.pdv-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pdv-product {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 14px;
+  cursor: pointer;
+  min-height: 68px;
+}
+
+.pdv-product:hover {
+  border-color: var(--primary);
+}
+
+.pdv-product span {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.pdv-cart {
+  display: grid;
+  gap: 10px;
+}
+
+.pdv-cart-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  font-size: 0.88rem;
+}
+
+.pdv-cart-item small {
+  display: block;
+  color: var(--muted);
+}
+
+.pdv-receipt {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--success);
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.pdv-receipt-code {
+  font-size: 1.8rem;
+  letter-spacing: 0.04em;
+  color: var(--success);
+}
+
+@media (max-width: 900px) {
+  .pdv-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.topbar-theme-toggle {
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.topbar-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 680px) {
+  .topbar-theme-toggle {
+    padding: 8px 10px;
+    font-size: 0;
+    border-width: 1px;
+  }
+
+  .topbar-theme-toggle::first-letter {
+    font-size: 1.1rem;
+  }
+}
+
+.sidebar-theme-toggle {
+  margin-top: 18px;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.sidebar-theme-toggle:hover {
+  background: var(--red-soft);
+}
+
+/* Imagem de produto costuma ter fundo branco; suaviza no escuro. */
+:root[data-theme='dark'] .item-image img,
+:root[data-theme='dark'] .cart-item img {
+  filter: brightness(0.92);
 }
 
 * {
@@ -28,7 +193,7 @@ html {
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  background: linear-gradient(180deg, #fffaf7 0%, #fff 100%);
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
   color: var(--text);
 }
 
@@ -138,8 +303,8 @@ body {
 
 .menu-toggle {
   border: 1px solid rgba(23, 23, 26, 0.08);
-  background: #ececec;
-  color: #3b3b3b;
+  background: var(--toggle-bg);
+  color: var(--toggle-text);
   border-radius: 999px;
   width: 48px;
   height: 48px;
@@ -166,7 +331,7 @@ body {
 }
 
 .customer-panel {
-  background: white;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 22px;
@@ -187,7 +352,7 @@ body {
 
 .customer-list .row-item,
 .customer-orders .order-item {
-  background: #fff7f3;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 14px 16px;
@@ -452,7 +617,7 @@ img {
 }
 
 .menu-gate-card {
-  background: white;
+  background: var(--panel);
   border: 2px dashed var(--line);
   border-radius: 24px;
   padding: 40px 28px;
@@ -496,7 +661,7 @@ img {
 }
 
 .modal-card {
-  background: white;
+  background: var(--panel);
   border-radius: 24px;
   padding: 26px;
   width: min(480px, 100%);
@@ -632,7 +797,7 @@ img {
 }
 
 .button.ghost {
-  background: white;
+  background: var(--panel);
   border: 1px solid var(--line);
   color: var(--text);
 }
@@ -650,7 +815,7 @@ img {
 }
 
 .hero-card {
-  background: linear-gradient(180deg, #fffaf5 0%, #fff2ea 100%);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--panel) 100%);
   border: 1px solid var(--line);
   border-radius: 26px;
   padding: 28px;
@@ -738,7 +903,7 @@ img {
 
 .category-tab {
   border: 1px solid var(--line);
-  background: white;
+  background: var(--panel);
   color: var(--muted);
   border-radius: 999px;
   padding: 10px 16px;
@@ -746,10 +911,12 @@ img {
   cursor: pointer;
 }
 
+/* Usa a cor da marca em vez de var(--text): no tema escuro o texto e quase
+   branco, e um fundo branco com texto branco sumia. */
 .category-tab.active {
-  background: var(--text);
-  color: white;
-  border-color: var(--text);
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 .menu-section {
@@ -826,7 +993,7 @@ img {
 }
 
 .tag {
-  background: #fff0eb;
+  background: var(--surface);
   color: var(--primary-deep);
   border-radius: 999px;
   padding: 6px 10px;
@@ -852,7 +1019,7 @@ img {
   border: 1px solid var(--line);
   border-radius: 12px;
   min-height: 42px;
-  background: white;
+  background: var(--panel);
   padding: 10px 12px;
 }
 
@@ -886,7 +1053,7 @@ img {
 .checkout-form,
 .qr-card,
 .visit-card {
-  background: white;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 26px;
@@ -907,7 +1074,7 @@ img {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: #fffaf8;
+  background: var(--surface);
 }
 
 .cart-item img {
@@ -945,7 +1112,7 @@ img {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--panel);
   border-radius: 999px;
   padding: 4px 10px;
 }
@@ -962,7 +1129,7 @@ img {
 
 .empty-cart {
   padding: 18px 10px;
-  background: #fff7f3;
+  background: var(--surface);
   border-radius: 16px;
   color: var(--muted);
   border: 1px dashed var(--line);
@@ -1018,7 +1185,7 @@ img {
 .form-row select {
   width: 100%;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--panel);
   border-radius: 12px;
   padding: 12px 14px;
   color: var(--text);
@@ -1164,7 +1331,7 @@ img {
   position: relative;
   min-height: 100vh;
   padding: 32px 24px 60px;
-  background: #f5f3f1;
+  background: var(--bg);
 }
 
 .admin-shell {
@@ -1182,7 +1349,7 @@ img {
   height: 52px;
   border: 1px solid rgba(22, 21, 28, 0.08);
   border-radius: 16px;
-  background: white;
+  background: var(--panel);
   color: var(--text);
   font-size: 1.8rem;
   cursor: pointer;
@@ -1196,7 +1363,7 @@ img {
   width: 280px;
   height: 100vh;
   padding: 26px 18px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--line);
   box-shadow: 12px 0 30px rgba(15, 23, 42, 0.08);
   transform: translateX(0);
@@ -1245,13 +1412,13 @@ img {
 
 .admin-nav-item:hover,
 .admin-nav-item.active {
-  background: #fff3ef;
+  background: var(--surface);
   border-color: rgba(220, 57, 43, 0.2);
   color: var(--danger);
 }
 
 .admin-card {
-  background: white;
+  background: var(--panel);
   border-radius: 24px;
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -1278,7 +1445,7 @@ img {
 .form-group input {
   width: 100%;
   border: 1px solid var(--line);
-  background: white;
+  background: var(--panel);
   border-radius: 12px;
   min-height: 48px;
   padding: 0 14px;
@@ -1333,7 +1500,7 @@ img {
 }
 
 .summary-card {
-  background: linear-gradient(180deg, #fffaf6 0%, #fff 100%);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--panel) 100%);
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 18px;
@@ -1359,7 +1526,7 @@ img {
 .table-card {
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: white;
+  background: var(--panel);
   padding: 16px;
 }
 
@@ -1417,7 +1584,7 @@ img {
   flex: 1;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff9f7;
+  background: var(--surface);
   color: var(--text);
   min-height: 38px;
   cursor: pointer;
@@ -1425,9 +1592,9 @@ img {
 }
 
 .inline-button.primary {
-  background: var(--text);
+  background: var(--primary);
   color: white;
-  border-color: var(--text);
+  border-color: var(--primary);
 }
 
 .table-form {
@@ -1595,7 +1762,7 @@ img {
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: #fffaf6;
+  background: var(--surface);
 }
 
 .hidden {

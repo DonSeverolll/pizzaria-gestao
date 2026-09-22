@@ -36,6 +36,7 @@ function resolveDbProvider() {
 
 let DB_PROVIDER = resolveDbProvider();
 let postgresPool = null;
+const isServerless = Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'production';
 
 const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 if (DB_PROVIDER === 'postgres') {
@@ -84,9 +85,23 @@ function getPostgresPool() {
   return postgresPool;
 }
 
+// Guarda a intencao configurada separada do provedor em uso: uma falha
+// passageira de rede nao pode aposentar o Postgres para sempre.
+let postgresConfigured = DB_PROVIDER === 'postgres';
+let postgresRetryAfter = 0;
+const POSTGRES_RETRY_MS = 15000;
+
 async function ensurePostgresReady() {
-  if (DB_PROVIDER !== 'postgres') {
+  if (!postgresConfigured) {
     return false;
+  }
+
+  if (DB_PROVIDER !== 'postgres') {
+    // Esta em fallback local: so tenta de novo depois da janela de espera.
+    if (Date.now() < postgresRetryAfter) {
+      return false;
+    }
+    DB_PROVIDER = 'postgres';
   }
 
   try {
@@ -94,9 +109,19 @@ async function ensurePostgresReady() {
     await pool.query('SELECT 1');
     return true;
   } catch (error) {
-    console.warn('Postgres unavailable, falling back to SQLite.', error.message);
-    DB_PROVIDER = 'sqlite';
     postgresPool = null;
+
+    // Em serverless o disco e somente leitura e some a cada invocacao: cair
+    // para SQLite ali nao "degrada", corrompe o comportamento do site. Melhor
+    // falhar visivelmente e deixar a proxima requisicao tentar de novo.
+    if (isServerless) {
+      DB_PROVIDER = 'postgres';
+      throw new Error(`Banco de dados indisponivel: ${error.message}`);
+    }
+
+    console.warn('Postgres indisponivel, usando SQLite local por alguns segundos.', error.message);
+    DB_PROVIDER = 'sqlite';
+    postgresRetryAfter = Date.now() + POSTGRES_RETRY_MS;
     return false;
   }
 }
@@ -484,6 +509,9 @@ async function createDb() {
   await ensureColumn('store_settings', 'pix_owner_name', 'TEXT');
   await ensureColumn('store_settings', 'pix_city', 'TEXT');
   await ensureColumn('store_settings', 'free_delivery_min', 'REAL');
+  await ensureColumn('users', 'name', 'TEXT');
+  // Bancos criados antes desta coluna existir nao a ganham via CREATE TABLE IF NOT EXISTS.
+  await ensureColumn('users', 'created_at', 'TEXT');
   await ensureColumn('orders', 'payment_provider', 'TEXT');
   await ensureColumn('orders', 'payment_reference', 'TEXT');
   await ensureColumn('orders', 'order_code', 'TEXT');
@@ -717,6 +745,49 @@ async function seedData() {
 async function getUserByUsername(username) {
   await createDb();
   return get('SELECT * FROM users WHERE username = ?', [username]);
+}
+
+async function listUsers() {
+  await createDb();
+  return all('SELECT id, username, name, role, created_at FROM users ORDER BY id ASC');
+}
+
+async function countOwners() {
+  await createDb();
+  const row = await get(`SELECT COUNT(*) as total FROM users WHERE role IN ('dono', 'admin')`);
+  return Number(row?.total || 0);
+}
+
+async function createStaffUser({ username, password, name, role }) {
+  await createDb();
+  const passwordHash = await bcrypt.hash(password, 10);
+  const result = await run(
+    `INSERT INTO users (username, password_hash, name, role) VALUES (?, ?, ?, ?)`,
+    [username, passwordHash, name || username, role]
+  );
+  return get('SELECT id, username, name, role, created_at FROM users WHERE id = ?', [result.id]);
+}
+
+async function updateStaffUser(id, { name, role, password }) {
+  await createDb();
+  const current = await get('SELECT * FROM users WHERE id = ?', [id]);
+  if (!current) {
+    return null;
+  }
+
+  const passwordHash = password ? await bcrypt.hash(password, 10) : current.password_hash;
+
+  await run(
+    `UPDATE users SET name = ?, role = ?, password_hash = ? WHERE id = ?`,
+    [name ?? current.name, role ?? current.role, passwordHash, id]
+  );
+
+  return get('SELECT id, username, name, role, created_at FROM users WHERE id = ?', [id]);
+}
+
+async function deleteStaffUser(id) {
+  await createDb();
+  return run('DELETE FROM users WHERE id = ?', [id]);
 }
 
 async function getCustomerByLogin(login) {
@@ -1243,6 +1314,95 @@ async function deleteExtra(id) {
   return run('DELETE FROM product_extras WHERE id = ?', [id]);
 }
 
+// CRM: monta a carteira de clientes a partir dos pedidos reais, porque a maior
+// parte das vendas e de visitante sem cadastro (so nome e telefone no checkout).
+async function getCrmCustomers() {
+  await createDb();
+  const orders = await all('SELECT * FROM orders ORDER BY created_at DESC');
+  const registered = await all('SELECT * FROM customers');
+
+  const byKey = new Map();
+
+  for (const customer of registered) {
+    byKey.set(`login:${customer.login}`, {
+      key: `login:${customer.login}`,
+      name: customer.name,
+      phone: null,
+      login: customer.login,
+      registered: true,
+      orders: 0,
+      totalSpent: 0,
+      lastOrderAt: null,
+      lastAddress: null,
+    });
+  }
+
+  for (const order of orders) {
+    // Telefone e a identidade mais confiavel; cai para login e depois nome.
+    const key = order.customer_phone
+      ? `phone:${String(order.customer_phone).replace(/\D/g, '')}`
+      : order.customer_login
+        ? `login:${order.customer_login}`
+        : `name:${String(order.customer_name || 'Cliente').toLowerCase().trim()}`;
+
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        key,
+        name: order.customer_name || 'Cliente',
+        phone: order.customer_phone || null,
+        login: order.customer_login || null,
+        registered: false,
+        orders: 0,
+        totalSpent: 0,
+        lastOrderAt: null,
+        lastAddress: null,
+      });
+    }
+
+    const entry = byKey.get(key);
+    entry.orders += 1;
+    entry.totalSpent += Number(order.total_value || 0);
+    entry.phone = entry.phone || order.customer_phone || null;
+    entry.name = entry.name || order.customer_name;
+    if (!entry.lastOrderAt || order.created_at > entry.lastOrderAt) {
+      entry.lastOrderAt = order.created_at;
+      entry.lastAddress = order.delivery_location || entry.lastAddress;
+    }
+  }
+
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+
+  return Array.from(byKey.values())
+    .map((entry) => {
+      const lastMs = entry.lastOrderAt ? new Date(entry.lastOrderAt.replace(' ', 'T')).getTime() : null;
+      const daysSince = lastMs ? Math.floor((now - lastMs) / DAY) : null;
+
+      let segment = 'sem-pedido';
+      if (entry.orders > 0) {
+        if (daysSince !== null && daysSince > 60) segment = 'inativo';
+        else if (entry.orders >= 3) segment = 'recorrente';
+        else segment = 'novo';
+      }
+
+      return {
+        ...entry,
+        ticket: entry.orders ? entry.totalSpent / entry.orders : 0,
+        daysSinceLastOrder: daysSince,
+        segment,
+      };
+    })
+    .sort((a, b) => b.totalSpent - a.totalSpent);
+}
+
+async function getOrdersByPhoneOrName({ phone, name }) {
+  await createDb();
+  if (phone) {
+    return all('SELECT * FROM orders WHERE customer_phone = ? ORDER BY created_at DESC', [phone]);
+  }
+  return all('SELECT * FROM orders WHERE customer_name = ? ORDER BY created_at DESC', [name]);
+}
+
 async function getOrderByCode(orderCode) {
   await createDb();
   return get('SELECT * FROM orders WHERE order_code = ?', [String(orderCode || '').toUpperCase()]);
@@ -1320,5 +1480,12 @@ module.exports = {
   updateExtra,
   deleteExtra,
   getOrderByCode,
+  getCrmCustomers,
+  getOrdersByPhoneOrName,
+  listUsers,
+  countOwners,
+  createStaffUser,
+  updateStaffUser,
+  deleteStaffUser,
   closeDb,
 };

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRM - PL Pizza</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/theme.js"></script>
+    <script src="/admin-shell.js" defer></script>
+  </head>
+  <body>
+    <div class="admin-page">
+      <button id="adminMenuToggle" class="admin-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu administrativo">
+        ☰
+      </button>
+
+      <aside id="adminSidebar" class="admin-sidebar open" data-active="crm"></aside>
+
+      <main class="admin-content">
+        <header class="admin-header">
+          <div>
+            <span class="eyebrow">Relacionamento</span>
+            <h1 style="margin: 0;">CRM de clientes</h1>
+          </div>
+          <a href="/admin" class="button ghost">Voltar</a>
+        </header>
+
+        <section class="summary-grid">
+          <div class="summary-card">
+            <span class="label">Clientes</span>
+            <strong id="crmTotal">0</strong>
+          </div>
+          <div class="summary-card">
+            <span class="label">Receita acumulada</span>
+            <strong id="crmReceita">R$ 0,00</strong>
+          </div>
+          <div class="summary-card">
+            <span class="label">Ticket médio</span>
+            <strong id="crmTicket">R$ 0,00</strong>
+          </div>
+          <div class="summary-card">
+            <span class="label">Recorrentes / Inativos</span>
+            <strong id="crmSegmentos">0 / 0</strong>
+          </div>
+        </section>
+
+        <section class="admin-card" style="margin-top: 18px;">
+          <div class="two-columns">
+            <div class="form-group">
+              <label for="crmSearch">Buscar cliente</label>
+              <input id="crmSearch" type="search" placeholder="Nome ou telefone" />
+            </div>
+            <div class="form-group">
+              <label for="crmSegment">Segmento</label>
+              <select id="crmSegment">
+                <option value="">Todos</option>
+                <option value="novo">Novos (1 a 2 pedidos)</option>
+                <option value="recorrente">Recorrentes (3+ pedidos)</option>
+                <option value="inativo">Inativos (60+ dias sem pedir)</option>
+                <option value="sem-pedido">Cadastrados sem pedido</option>
+              </select>
+            </div>
+          </div>
+          <p class="muted-text">
+            A carteira é montada a partir dos pedidos reais — inclusive de quem comprou sem criar conta,
+            agrupando pelo telefone informado no checkout.
+          </p>
+        </section>
+
+        <section class="admin-card" style="margin-top: 18px;">
+          <div id="crmList" class="tables-grid"></div>
+        </section>
+
+        <section id="crmHistory" class="admin-card hidden" style="margin-top: 18px;">
+          <div class="admin-header" style="margin-bottom: 12px;">
+            <div>
+              <span class="eyebrow">Histórico</span>
+              <h2 id="crmHistoryTitle" style="margin: 0;">Pedidos do cliente</h2>
+            </div>
+            <button id="crmHistoryClose" class="button ghost" type="button">Fechar</button>
+          </div>
+          <div id="crmHistoryBody"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/admin-crm.js"></script>
+  </body>
+</html>

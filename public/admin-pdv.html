@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDV / Balcão - PL Pizza</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/theme.js"></script>
+    <script src="/admin-shell.js" defer></script>
+  </head>
+  <body>
+    <div class="admin-page">
+      <button id="adminMenuToggle" class="admin-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu administrativo">
+        ☰
+      </button>
+
+      <aside id="adminSidebar" class="admin-sidebar open" data-active="pdv"></aside>
+
+      <main class="admin-content">
+        <header class="admin-header">
+          <div>
+            <span class="eyebrow">Venda presencial</span>
+            <h1 style="margin: 0;">PDV / Balcão</h1>
+          </div>
+          <a href="/admin" class="button ghost">Voltar</a>
+        </header>
+
+        <div class="pdv-layout">
+          <section class="admin-card">
+            <h2 style="margin-top: 0;">Produtos</h2>
+            <input id="pdvSearch" type="search" placeholder="Buscar produto..." class="pdv-search" />
+            <div id="pdvCategories" class="category-tabs" style="margin-top: 12px;"></div>
+            <div id="pdvProducts" class="pdv-products"></div>
+          </section>
+
+          <section class="admin-card">
+            <h2 style="margin-top: 0;">Comanda</h2>
+            <div id="pdvCart" class="pdv-cart"></div>
+
+            <div class="order-summary" style="margin-top: 14px;">
+              <div class="total-line"><span>Total</span><strong id="pdvTotal">R$ 0,00</strong></div>
+            </div>
+
+            <form id="pdvForm" class="product-form" style="margin-top: 16px;">
+              <div class="form-group">
+                <label for="pdvCustomer">Cliente (opcional)</label>
+                <input id="pdvCustomer" type="text" placeholder="Nome ou mesa" />
+              </div>
+
+              <div class="form-group">
+                <label for="pdvPayment">Forma de pagamento</label>
+                <select id="pdvPayment">
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="pix">Pix</option>
+                  <option value="cartao">Cartão</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="pdvNotes">Observações</label>
+                <input id="pdvNotes" type="text" placeholder="Sem cebola, para viagem..." />
+              </div>
+
+              <div class="type-actions">
+                <button class="button primary" type="submit">Fechar venda</button>
+                <button id="pdvClear" class="button ghost" type="button">Limpar</button>
+              </div>
+              <div id="pdvMessage" class="form-message" aria-live="polite"></div>
+            </form>
+
+            <div id="pdvReceipt" class="pdv-receipt hidden"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="/admin-pdv.js"></script>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Funcionários - PL Pizza</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/theme.js"></script>
+    <script src="/admin-shell.js" defer></script>
+  </head>
+  <body>
+    <div class="admin-page">
+      <button id="adminMenuToggle" class="admin-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu administrativo">
+        ☰
+      </button>
+
+      <aside id="adminSidebar" class="admin-sidebar open" data-active="funcionarios"></aside>
+
+      <main class="admin-content">
+        <header class="admin-header">
+          <div>
+            <span class="eyebrow">Equipe</span>
+            <h1 style="margin: 0;">Funcionários</h1>
+          </div>
+          <div class="admin-toolbar">
+            <button id="themeToggle" class="button ghost" type="button">Tema escuro</button>
+            <a href="/admin" class="button ghost">Voltar</a>
+          </div>
+        </header>
+
+        <section class="admin-card">
+          <h2 style="margin-top: 0;">Novo funcionário</h2>
+          <form id="staffForm" class="product-form">
+            <div class="two-columns">
+              <div class="form-group">
+                <label for="staffName">Nome</label>
+                <input id="staffName" type="text" placeholder="Nome do funcionário" required />
+              </div>
+              <div class="form-group">
+                <label for="staffUsername">Usuário de acesso</label>
+                <input id="staffUsername" type="text" placeholder="ex.: joao" autocomplete="off" required />
+              </div>
+            </div>
+
+            <div class="two-columns">
+              <div class="form-group">
+                <label for="staffPassword">Senha (mínimo 6 caracteres)</label>
+                <input id="staffPassword" type="password" autocomplete="new-password" required />
+              </div>
+              <div class="form-group">
+                <label for="staffRole">Perfil de acesso</label>
+                <select id="staffRole" required>
+                  <option value="caixa">Caixa / Atendente</option>
+                  <option value="cozinha">Cozinha</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="dono">Dono</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="button primary" type="submit">Adicionar funcionário</button>
+            <div id="staffMessage" class="form-message" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="admin-card" style="margin-top: 18px;">
+          <h2 style="margin-top: 0;">Equipe cadastrada</h2>
+          <p class="muted-text">
+            <strong>Dono</strong> vê tudo. <strong>Gerente</strong> não mexe em funcionários nem nas configurações da loja.
+            <strong>Caixa</strong> acessa pedidos, PDV, caixa e clientes. <strong>Cozinha</strong> vê apenas os pedidos.
+          </p>
+          <div id="staffList" class="tables-grid" style="margin-top: 16px;"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/admin-funcionarios.js"></script>
+  </body>
+</html>

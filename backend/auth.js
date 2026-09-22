@@ -63,8 +63,64 @@ function optionalAuth(req, res, next) {
   return next();
 }
 
+// Areas do painel que cada perfil enxerga. "admin" e o papel legado dos
+// usuarios criados antes dos perfis existirem e equivale a dono.
+const ROLE_PERMISSIONS = {
+  dono: ['*'],
+  admin: ['*'],
+  gerente: ['pedidos', 'pdv', 'produtos', 'estoque', 'lucro', 'crm', 'clientes', 'mesas', 'caixa'],
+  caixa: ['pedidos', 'pdv', 'caixa', 'clientes', 'crm', 'mesas'],
+  cozinha: ['pedidos'],
+};
+
+const ROLE_LABELS = {
+  dono: 'Dono',
+  admin: 'Dono',
+  gerente: 'Gerente',
+  caixa: 'Caixa / Atendente',
+  cozinha: 'Cozinha',
+};
+
+function isOwner(role) {
+  return role === 'dono' || role === 'admin';
+}
+
+function hasPermission(role, area) {
+  const permissions = ROLE_PERMISSIONS[role];
+  if (!permissions) return false;
+  return permissions.includes('*') || permissions.includes(area);
+}
+
+// Qualquer funcionario autenticado (nao cliente).
+function requireStaff(req, res, next) {
+  if (!req.user || !ROLE_PERMISSIONS[req.user.role]) {
+    return res.status(403).json({ message: 'Acesso restrito à equipe da pizzaria.' });
+  }
+
+  return next();
+}
+
+function requirePermission(area) {
+  return function permissionMiddleware(req, res, next) {
+    if (!req.user || !hasPermission(req.user.role, area)) {
+      return res.status(403).json({ message: 'Seu perfil não tem acesso a esta área.' });
+    }
+
+    return next();
+  };
+}
+
+// Reservado ao dono: funcionarios e configuracoes da loja.
+function requireOwner(req, res, next) {
+  if (!req.user || !isOwner(req.user.role)) {
+    return res.status(403).json({ message: 'Apenas o dono pode executar esta ação.' });
+  }
+
+  return next();
+}
+
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'admin') {
+  if (!req.user || !ROLE_PERMISSIONS[req.user.role]) {
     return res.status(403).json({ message: 'Acesso restrito à administração.' });
   }
 
@@ -85,4 +141,11 @@ module.exports = {
   optionalAuth,
   requireAdmin,
   requireAuth,
+  requireStaff,
+  requireOwner,
+  requirePermission,
+  hasPermission,
+  isOwner,
+  ROLE_PERMISSIONS,
+  ROLE_LABELS,
 };
