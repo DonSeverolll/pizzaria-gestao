@@ -380,6 +380,7 @@ if (loginForm) {
 
       PL.auth.setToken(body.token);
       showDashboard();
+      window.PLAdminShell?.refresh();
       await loadTables();
     } catch (error) {
       if (loginMessage) loginMessage.textContent = error.message;
@@ -391,6 +392,7 @@ if (logoutButton) {
   logoutButton.addEventListener('click', () => {
     PL.auth.clearToken();
     showLogin();
+    window.PLAdminShell?.refresh();
     if (loginForm) loginForm.reset();
     if (loginMessage) loginMessage.textContent = '';
   });

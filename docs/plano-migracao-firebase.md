@@ -177,30 +177,41 @@ Também: a função na Vercel fica um pouco mais pesada no primeiro acesso
   (fora do ar) e a loja cai no logo padrão (`/logo-pl-real.png`).
 - `vercel.json` com `"regions": ["gru1"]`: as funções rodam em São Paulo,
   ao lado do banco.
+- **Produção no Firestore desde 17/11/2026** (merge dos PRs #2 e #1).
+  Conferido em `plpizza.vercel.app`: cardápio, acompanhamento de pedido pelo
+  código e login do painel respondendo. Pedido e pagamento (Pix/cartão) no
+  site publicado ainda não foram testados.
+- Os dois administradores ganharam logins pessoais e nome de exibição
+  (perfil de dono); o antigo `admin` não existe mais. O login diferencia
+  maiúsculas de minúsculas.
 
-**Roteiro**
-1. Na Vercel, *Settings → Environment Variables*, **só no ambiente
-   Production** (prévias de PR não devem gravar no banco real). Variável
-   nova só vale a partir do próximo deploy, então cadastre antes do merge:
-   | Variável | Valor |
-   | --- | --- |
-   | `DB_PROVIDER` | `firestore` |
-   | `FIREBASE_PROJECT_ID` | `plpizza-ebc69` |
-   | `FIREBASE_CLIENT_EMAIL` | campo `client_email` do JSON da conta de serviço |
-   | `FIREBASE_PRIVATE_KEY` | campo `private_key` do JSON (pode colar com quebras de linha ou com `\n`) |
-   | `STORAGE_PROVIDER` | deixar vazio enquanto não houver bucket |
+**Variáveis na Vercel (Production)**
 
-   `JWT_SECRET`, `PUBLIC_BASE_URL` e as do Mercado Pago continuam como estão.
-   Para copiar a chave sem abrir o arquivo (PowerShell):
-   `(Get-Content '<arquivo-da-chave>.json' -Raw | ConvertFrom-Json).private_key | Set-Clipboard`
-2. Merge do PR do Firestore (#2) primeiro: ele entra na branch da base v2
-   (#1), sem deploy de produção.
-3. Merge do PR da base v2 (#1) na `main`: um único deploy de produção já
-   com o Firestore. (Se a `main` tiver sido publicada antes das variáveis,
-   use *Deployments → Redeploy*.)
-4. Conferir no site publicado: cardápio com os 3 produtos, acompanhamento de
-   um pedido pelo código, login no painel, relatório de vendas.
-5. No painel, *Configurações*: enviar o logo de novo ou colar a URL de uma
-   imagem (o upload responde pedindo o bucket enquanto não houver Storage).
-6. Depois de alguns dias estável: tirar `SUPABASE_*` da Vercel e, na limpeza
-   (seção 7, passo 8), o Postgres do código.
+| Variável | Valor |
+| --- | --- |
+| `DB_PROVIDER` | `firestore` (também em Preview, onde falta a chave e nada grava no banco real) |
+| `FIREBASE_PROJECT_ID` | `plpizza-ebc69` |
+| `FIREBASE_CLIENT_EMAIL` | campo `client_email` do JSON da conta de serviço |
+| `FIREBASE_PRIVATE_KEY` | campo `private_key` do JSON, numa linha só com `\n` |
+| `JWT_SECRET` | aleatório, 48 bytes ou mais |
+| `STORAGE_PROVIDER` | vazio enquanto não houver bucket |
+
+Para copiar sem mostrar o valor (PowerShell), uma de cada vez, colando na
+Vercel antes de rodar a próxima:
+
+```powershell
+(Get-Content '<arquivo-da-chave>.json' -Raw | ConvertFrom-Json).private_key.Replace("`n", '\n') | Set-Clipboard
+node -e "process.stdout.write(require('crypto').randomBytes(48).toString('base64url'))" | Set-Clipboard
+```
+
+Variável nova só vale a partir do próximo deploy (*Deployments → Redeploy*).
+
+**Pendências**
+1. Fazer um pedido de teste no site publicado (Pix e cartão) e conferir no
+   painel.
+2. No painel, *Configurações*: trocar o logo (o link salvo era do Supabase,
+   fora do ar) colando a URL de uma imagem. O botão de upload só funciona com
+   Storage, que exige o plano Blaze.
+3. Depois de alguns dias estável: tirar `SUPABASE_*` da Vercel, apagar as
+   branches já integradas no GitHub e, na limpeza (seção 7, passo 8), o
+   Postgres do código.

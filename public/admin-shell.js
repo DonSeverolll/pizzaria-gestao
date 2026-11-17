@@ -46,6 +46,86 @@
     return permissions.includes('*') || permissions.includes(item.area);
   }
 
+  // Iniciais do nome de exibicao ("Alejandro Lima" -> "AL"); sem nome, as duas
+  // primeiras letras do login.
+  function initials(user) {
+    const words = String(user?.name || user?.username || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length === 0) return '?';
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  }
+
+  function displayName(user) {
+    return user?.name || user?.username || '';
+  }
+
+  function avatar(user) {
+    return `<span class="admin-avatar" aria-hidden="true">${window.PL.dom.escapeHtml(initials(user))}</span>`;
+  }
+
+  // Cartao de quem esta logado, no canto de baixo da barra lateral.
+  function userCard(user) {
+    if (!user) return '';
+    const escape = window.PL.dom.escapeHtml;
+    return `
+      <div class="admin-user-card" title="${escape(displayName(user))} · ${escape(user.roleLabel || '')}">
+        ${avatar(user)}
+        <div class="admin-user-card__text">
+          <strong>${escape(displayName(user))}</strong>
+          <small>${escape(user.username)}${user.roleLabel ? ` · ${escape(user.roleLabel)}` : ''}</small>
+        </div>
+      </div>
+    `;
+  }
+
+  // Icone com o nome no canto superior direito do cabecalho da pagina. O que ja
+  // estava a direita do titulo (Sair, Voltar...) vai para a mesma barra.
+  function renderHeaderChip(user) {
+    document.querySelectorAll('.admin-user-chip').forEach((chip) => chip.remove());
+    if (!user) return;
+
+    const header = document.querySelector('.admin-content header.admin-header');
+    if (!header) return;
+
+    let toolbar = header.querySelector(':scope > .admin-toolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.className = 'admin-toolbar';
+      [...header.children].slice(1).forEach((child) => toolbar.appendChild(child));
+      header.appendChild(toolbar);
+    }
+
+    const escape = window.PL.dom.escapeHtml;
+    const chip = document.createElement('div');
+    chip.className = 'admin-user-chip';
+    chip.title = `${displayName(user)} · ${user.roleLabel || ''}`;
+    chip.innerHTML = `
+      ${avatar(user)}
+      <span class="admin-user-chip__text">
+        <strong>${escape(displayName(user))}</strong>
+        <small>${escape(user.roleLabel || '')}</small>
+      </span>
+    `;
+    toolbar.appendChild(chip);
+  }
+
+  async function fetchUser() {
+    const token = window.PL.auth.getToken();
+    if (!token) return null;
+    // Fetch direto (e nao PL.api): aqui um 401 nao deve redirecionar; sem
+    // usuario, o menu completo aparece e o servidor barra o que nao pode.
+    try {
+      const response = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+      return response.ok ? (await response.json()).user : null;
+    } catch (error) {
+      // Sem rede: mostra o menu completo; o servidor barra o que nao pode.
+      return null;
+    }
+  }
+
   function render(sidebar, user) {
     const active = sidebar.dataset.active || '';
     const visible = NAV_ITEMS.filter((item) => canSee(item, user));
@@ -68,6 +148,8 @@
           .join('')}
       </nav>
 
+      ${userCard(user)}
+
       <div class="admin-sidebar-footer">
         <span>Tema</span>
         <button class="theme-switch" data-theme-toggle type="button" aria-label="Alternar tema claro/escuro"></button>
@@ -77,7 +159,19 @@
     if (window.PLTheme) {
       window.PLTheme.enhance(sidebar);
     }
+
+    renderHeaderChip(user);
   }
+
+  // Remonta menu, cartao e icone (ex.: logo depois do login ou do "Sair" no
+  // admin.html, que troca de tela sem recarregar a pagina).
+  async function refresh() {
+    const sidebar = document.getElementById('adminSidebar');
+    if (!sidebar) return;
+    render(sidebar, await fetchUser());
+  }
+
+  window.PLAdminShell = { refresh };
 
   async function init() {
     const sidebar = document.getElementById('adminSidebar');
@@ -92,23 +186,7 @@
     }
     sidebar.dataset.ready = 'true';
 
-    const token = window.PL.auth.getToken();
-    let user = null;
-
-    if (token) {
-      // Fetch direto (e nao PL.api): aqui um 401 nao deve redirecionar; sem
-      // usuario, o menu completo aparece e o servidor barra o que nao pode.
-      try {
-        const response = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-        if (response.ok) {
-          user = (await response.json()).user;
-        }
-      } catch (error) {
-        // Sem rede: mostra o menu completo; o servidor barra o que nao pode.
-      }
-    }
-
-    render(sidebar, user);
+    render(sidebar, await fetchUser());
 
     if (toggle) {
       toggle.addEventListener('click', () => {
