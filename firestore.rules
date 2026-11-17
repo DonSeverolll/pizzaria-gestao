@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Ninguem acessa o banco direto pelo navegador ou pelos SDKs de cliente.
+// O backend usa o Admin SDK (firebase-admin), que nao passa por estas regras;
+// toda leitura e gravacao acontece pela API do site, com as validacoes dela.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

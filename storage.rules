@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Fotos de produto e logo: leitura publica (aparecem no cardapio); gravacao
+// so pelo backend (Admin SDK), depois de validar tipo e tamanho do arquivo.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /produtos/{arquivo} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /{caminho=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -6,6 +6,13 @@ const assert = require('node:assert/strict');
 process.env.NODE_ENV = 'test';
 delete process.env.SQLITE_PATH;
 
+// Estes testes olham migracoes, PRAGMA e indices SQL: nao se aplicam ao
+// Firestore (que tem os proprios em firestore.test.js).
+if (String(process.env.DB_PROVIDER).toLowerCase() === 'firestore') {
+  test('camada SQL', { skip: 'DB_PROVIDER=firestore' }, () => {});
+  return;
+}
+
 const db = require('../backend/db');
 const { loadMigrations } = require('../backend/db/migrate');
 

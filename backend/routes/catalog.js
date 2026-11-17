@@ -172,7 +172,7 @@ router.post(
       res.json({ url });
     } catch (error) {
       // Falta de configuracao do Supabase e mensagem util para o dono.
-      error.statusCode = /Configure SUPABASE/.test(error.message) ? 503 : 500;
+      error.statusCode = /^Configure (SUPABASE|FIREBASE)/.test(error.message) ? 503 : 500;
       error.expose = error.statusCode === 503;
       throw error;
     }

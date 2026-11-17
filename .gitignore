@@ -16,3 +16,6 @@ data/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Logs dos emuladores do Firebase
+*-debug.log
