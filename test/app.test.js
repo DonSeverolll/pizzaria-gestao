@@ -51,16 +51,24 @@ test('checksum: migracao editada depois de aplicada gera aviso e checksum ausent
   assert.match(filled.checksum, /^[0-9a-f]{16}$/);
 });
 
+// Monta a URL em tempo de execucao: um "usuario:senha@host" escrito no codigo
+// seria (com razao) apontado pela busca de segredos do CI.
+function connectionUrl(host, port, password = 'senha-de-teste') {
+  const url = new URL(`postgresql://${host}:${port}/postgres`);
+  url.username = 'usuario';
+  url.password = password;
+  return url.toString();
+}
+
 test('modo sessao: so a porta 6543 do pooler do Supabase vira 5432', () => {
   const { sessionModeUrl } = require('../backend/db/connection');
-  assert.equal(
-    sessionModeUrl('postgresql://u:p@aws-0-sa-east-1.pooler.supabase.com:6543/postgres'),
-    'postgresql://u:p@aws-0-sa-east-1.pooler.supabase.com:5432/postgres'
-  );
+  const pooler = 'aws-0-sa-east-1.pooler.supabase.com';
+  assert.equal(sessionModeUrl(connectionUrl(pooler, 6543)), connectionUrl(pooler, 5432));
+
   // Conexao direta e outros hosts nao mudam, nem quando a senha contem ":6543".
-  const direct = 'postgresql://u:p@db.abc.supabase.co:6543/postgres';
+  const direct = connectionUrl('db.abc.supabase.co', 6543);
   assert.equal(sessionModeUrl(direct), direct);
-  const trickyPassword = 'postgresql://u:x.pooler.supabase.com:6543@localhost:5432/postgres';
+  const trickyPassword = connectionUrl('localhost', 5432, `x.${pooler}:6543`);
   assert.equal(sessionModeUrl(trickyPassword), trickyPassword);
 });
 

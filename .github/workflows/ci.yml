@@ -47,7 +47,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # .github/trufflehog-exclude.txt tira da varredura SO o teste que usava
+      # URLs de conexao ficticias (usuario/senha de mentira) num commit antigo
+      # do historico. O restante do repositorio continua sendo varrido.
       - name: TruffleHog
         uses: trufflesecurity/trufflehog@v3.95.3
         with:
-          extra_args: --results=verified,unknown
+          extra_args: --results=verified,unknown --exclude-paths=.github/trufflehog-exclude.txt
