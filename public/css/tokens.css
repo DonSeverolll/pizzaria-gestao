@@ -1,0 +1,242 @@
+/* =============================================================================
+   TOKENS DE DESIGN - PL Pizza (vitrine + painel)
+   =============================================================================
+
+   Este arquivo e a UNICA fonte de cores, espacamentos, raios, sombras,
+   tipografia, camadas (z-index) e duracoes de animacao do frontend.
+   Ele e o primeiro @import de /styles.css, entao todos os outros arquivos
+   podem usar estas variaveis.
+
+   COMO USAR NO REDESIGN
+   1. Trocar a marca/tema: altere os valores das variaveis abaixo, nao as regras.
+      - Cores da marca: --primary, --primary-deep, --brand-red, --brand-dark,
+        --accent, --red-soft.
+      - Superficies e texto: --bg, --panel, --surface, --text, --muted, --line.
+      - Tema escuro: sobrescreva so o que muda em :root[data-theme='dark'].
+        O atributo data-theme e controlado por /theme.js (chave localStorage
+        'pl-pizzas-theme'). O vermelho da marca e o mesmo nos dois temas.
+   2. Em regras novas ou reescritas, use var(--token) em vez de valores soltos:
+        .meu-cartao {
+          padding: var(--space-4);
+          border-radius: var(--radius-xl);
+          font-size: var(--font-size-sm);
+          box-shadow: var(--shadow-md);
+          transition: transform var(--duration-base) var(--easing-standard);
+        }
+   3. Precisa de um valor novo? Crie o token aqui (com comentario) antes de usar.
+   4. Regras antigas ainda usam valores literais. Os tokens das escalas abaixo
+      tem EXATAMENTE os valores usados hoje, entao trocar um literal pelo token
+      equivalente nao muda nada na tela. Migre aos poucos, tela por tela.
+
+   ATENCAO: --shadow (secao 1) e uma COR, nao uma sombra completa. As regras
+   "box-shadow: var(--shadow)" sao invalidas para o navegador e hoje NAO
+   desenham sombra nenhuma. Nao "conserte" isso sem revisar o visual de todas as
+   telas; para sombras use a escala --shadow-sm / --shadow-md / --shadow-lg.
+
+   BREAKPOINTS (variaveis CSS nao funcionam dentro de @media; use os numeros):
+     680px  - celular (topo da vitrine compacto, cardapio em 1 coluna)
+     720px  - painel: resumo em 2 colunas, formulario de mesa empilhado
+     900px  - tablet (hero/checkout em 1 coluna, cardapio em 2, PDV empilhado)
+     980px  - esconde a navegacao do topo da vitrine (mostra o hamburguer)
+   Sempre com max-width (desktop primeiro), como no CSS atual.
+   ============================================================================= */
+
+
+/* -----------------------------------------------------------------------------
+   1. Tokens existentes (movidos sem alteracao do styles.css original)
+   ----------------------------------------------------------------------------- */
+
+/* Valores reajustados na identidade v2 (creme, vinho e vermelho-tomate):
+   o painel herda a paleta nova sem precisar reescrever suas regras. */
+:root {
+  --bg: #fff6ee;
+  --panel: #ffffff;
+  --surface: #fff1e6;
+  --primary: #e3262e;
+  --primary-deep: #b5121b;
+  --brand-red: #e3262e;
+  --brand-dark: #2a0a10;
+  --red-soft: #fde2dc;
+  --accent: #f6c244;
+  --text: #1c0f12;
+  --muted: #6e5a5d;
+  --line: #f1ded3;
+  --success: #1d9d5c;
+  --warning: #d98b1d;
+  --danger: #cf2f3d;
+  --shadow: rgba(18, 18, 22, 0.08);
+  --bg-top: #fffaf7;
+  --bg-bottom: #ffffff;
+  --sidebar-bg: rgba(255, 255, 255, 0.96);
+  --toggle-bg: #ececec;
+  --toggle-text: #3b3b3b;
+}
+
+/* O vermelho da marca e mantido nos dois temas; o que muda sao as superficies. */
+:root[data-theme='dark'] {
+  --bg: #170609;
+  --panel: #210a0f;
+  --surface: #2b0e15;
+  --red-soft: #4a1520;
+  --text: #ffeee8;
+  --muted: #c4a2a6;
+  --line: #3d1820;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --bg-top: #1c070c;
+  --bg-bottom: #120407;
+  --sidebar-bg: rgba(33, 10, 15, 0.97);
+  --toggle-bg: #2b0e15;
+  --toggle-text: #ffeee8;
+}
+
+
+/* -----------------------------------------------------------------------------
+   2. Escalas para o redesign (novas; ainda nao usadas pelas regras atuais,
+      portanto nao alteram nada na tela). Iguais nos dois temas.
+   ----------------------------------------------------------------------------- */
+
+:root {
+  /* Espacamento (padding, margin, gap) - passos de 4px.
+     Valores fora da escala ainda usados hoje: 2px, 6px, 10px, 14px, 18px, 22px,
+     26px. No redesign, arredonde para o passo mais proximo. */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-15: 60px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Raio de borda. Fora da escala hoje: 16px e 20px. */
+  --radius-xs: 10px;     /* botoes de icone, campos do menu lateral */
+  --radius-sm: 12px;     /* campos de formulario, botoes, itens de lista */
+  --radius-md: 14px;     /* itens de estoque, cartoes pequenos */
+  --radius-lg: 18px;     /* cartoes do painel, item do carrinho */
+  --radius-xl: 24px;     /* cartoes principais e modal */
+  --radius-2xl: 26px;    /* hero e banner promocional */
+  --radius-pill: 999px;  /* pilulas, abas e botoes arredondados */
+
+  /* Sombras completas (valores identicos aos literais usados hoje). */
+  --shadow-sm: 0 10px 22px rgba(0, 0, 0, 0.18);          /* pilula do carrinho */
+  --shadow-md: 0 18px 32px rgba(35, 31, 32, 0.08);       /* cartao do cardapio (hover) */
+  --shadow-lg: 0 30px 60px rgba(0, 0, 0, 0.28);          /* modal */
+  --shadow-primary: 0 16px 32px rgba(215, 25, 32, 0.22); /* botao primario */
+  --shadow-drawer-left: 12px 0 30px rgba(15, 23, 42, 0.08); /* barra lateral do painel */
+  --shadow-drawer-right: -14px 0 40px rgba(0, 0, 0, 0.22);  /* menu lateral da vitrine */
+
+  /* Tipografia */
+  --font-sans: 'Inter', sans-serif;
+
+  --font-size-2xs: 0.72rem;  /* selos, tags */
+  --font-size-xs: 0.8rem;    /* rotulos, metadados */
+  --font-size-sm: 0.85rem;   /* texto auxiliar, labels de formulario */
+  --font-size-md: 0.95rem;   /* botoes do topo, textos de pilula */
+  --font-size-base: 1rem;
+  --font-size-lg: 1.1rem;
+  --font-size-xl: 1.3rem;    /* titulos de cartao */
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;     /* numeros de destaque */
+  --font-size-display: clamp(2.6rem, 6vw, 4.4rem); /* titulo do hero */
+
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  --line-height-none: 1;
+  --line-height-display: 1.02;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.7;
+
+  --letter-spacing-tight: -0.04em;
+  --letter-spacing-wide: 0.04em;
+
+  /* Camadas (z-index). O menu lateral da vitrine e o modal dividem a mesma camada. */
+  --z-sidebar: 20;   /* barra lateral do painel */
+  --z-header: 30;    /* topo fixo da vitrine, botao do menu do painel */
+  --z-overlay: 60;   /* menu lateral da vitrine, modal */
+
+  /* Animacoes */
+  --duration-fast: 0.15s;
+  --duration-base: 0.2s;
+  --duration-slow: 0.25s;   /* abrir/fechar barras laterais */
+  --easing-standard: ease;
+}
+
+
+/* -----------------------------------------------------------------------------
+   3. Identidade v2 (vitrine "poster" + painel)
+      Titulos altos e condensados, secoes vinho, paineis rosados e barra de
+      navegacao vermelha. A paleta --pl-* e fixa; os tokens --site-* mudam
+      com o tema e sao os que as regras devem usar.
+   ----------------------------------------------------------------------------- */
+
+:root {
+  --font-display: 'Anton', 'Bebas Neue', 'Oswald', Impact, 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Paleta da marca */
+  --pl-red: #e3262e;
+  --pl-red-deep: #b5121b;
+  --pl-red-hot: #ff4248;
+  --pl-wine: #3b0a14;
+  --pl-wine-deep: #24050b;
+  --pl-wine-soft: #561526;
+  --pl-blush: #fce3d6;
+  --pl-blush-deep: #f6c9b7;
+  --pl-cream: #fff6ee;
+  --pl-basil: #1f6b45;
+  --pl-basil-soft: #d8f0df;
+  --pl-cheese: #f6c244;
+  --pl-ink: #1c0f12;
+
+  /* Semanticos da vitrine - tema claro */
+  --site-bg: var(--pl-cream);
+  --site-surface: #ffffff;
+  --site-surface-2: var(--pl-blush);
+  --site-text: var(--pl-ink);
+  --site-muted: #6e5a5d;
+  --site-line: rgba(59, 10, 20, 0.12);
+  --site-heading: var(--pl-red);
+  --site-hero-bg: var(--pl-blush);
+  --site-hero-ink: var(--pl-wine);
+  --site-wine: var(--pl-wine);
+  --site-on-wine: #ffeee8;
+  --site-basil-bg: var(--pl-basil-soft);
+  --site-basil-ink: #10351f;
+  --site-card-shadow: 0 1px 0 rgba(59, 10, 20, 0.06), 0 22px 44px -28px rgba(59, 10, 20, 0.45);
+  --site-focus: 0 0 0 3px rgba(227, 38, 46, 0.4);
+
+  /* Formas e movimento */
+  --radius-card: 28px;
+  --radius-blob: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  --site-max: 1240px;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-theme: 0.45s;
+}
+
+:root[data-theme='dark'] {
+  --site-bg: #170609;
+  --site-surface: #24080e;
+  --site-surface-2: #33101a;
+  --site-text: #ffeee8;
+  --site-muted: #c9a7aa;
+  --site-line: rgba(255, 238, 232, 0.12);
+  --site-heading: var(--pl-red-hot);
+  --site-hero-bg: var(--pl-wine);
+  --site-hero-ink: #ffeee8;
+  --site-wine: #24050b;
+  --site-basil-bg: #0f2a1c;
+  --site-basil-ink: #d8f0df;
+  --site-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 26px 52px -30px rgba(0, 0, 0, 0.85);
+}

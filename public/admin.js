@@ -18,6 +18,10 @@ const productCategory = document.getElementById('productCategory');
 const foodFields = document.getElementById('foodFields');
 const drinkFields = document.getElementById('drinkFields');
 
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
+const { currencyDot } = PL.format;
+
 const statusMap = {
   available: 'Disponível',
   occupied: 'Ocupada',
@@ -51,18 +55,6 @@ const orderActionsByStatus = {
   ],
 };
 
-function setToken(token) {
-  localStorage.setItem('pizzaria-token', token);
-}
-
-function getToken() {
-  return localStorage.getItem('pizzaria-token');
-}
-
-function clearToken() {
-  localStorage.removeItem('pizzaria-token');
-}
-
 function maskPaymentKey(value) {
   if (!value) return 'Não informado';
   const trimmed = String(value).trim();
@@ -70,34 +62,17 @@ function maskPaymentKey(value) {
   return `**** ${lastFour}`;
 }
 
-async function apiFetch(path, options = {}) {
-  const token = getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(path, { ...options, headers });
-
-  if (response.status === 401) {
-    clearToken();
+// Esta pagina tem o proprio login: o token e lido a cada chamada (padrao do
+// PL.api) e, no 401, volta para a tela de login em vez de redirecionar.
+const apiFetch = PL.api.client({
+  unauthorizedMessage: 'Sessão expirada. Faça login novamente.',
+  onUnauthorized: () => {
+    PL.auth.clearToken();
     if (loginView && dashboardView) {
       showLogin();
     }
-    throw new Error('Sessão expirada. Faça login novamente.');
-  }
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return response.json();
-}
+  },
+});
 
 function showLogin() {
   if (loginView && dashboardView) {
@@ -128,7 +103,7 @@ function renderSummary(summary) {
       (card) => `
         <div class="summary-card">
           <span class="label">${card.label}</span>
-          <strong>${card.value}</strong>
+          <strong>${escapeHtml(card.value)}</strong>
         </div>
       `
     )
@@ -143,13 +118,13 @@ function renderTableList(tables) {
       (table) => `
         <article class="table-card">
           <div class="row">
-            <h3>${table.name}</h3>
-            <span class="table-status" data-status="${table.status}">${statusMap[table.status] || table.status}</span>
+            <h3>${escapeHtml(table.name)}</h3>
+            <span class="table-status" data-status="${escapeHtml(table.status)}">${escapeHtml(statusMap[table.status] || table.status)}</span>
           </div>
-          <div class="capacity">Capacidade: ${table.capacity} lugares</div>
+          <div class="capacity">Capacidade: ${escapeHtml(table.capacity)} lugares</div>
           <div class="type-actions">
-            <button class="inline-button primary" data-action="next" data-id="${table.id}" type="button">Próximo status</button>
-            <button class="inline-button" data-action="toggle" data-id="${table.id}" type="button">1 clique</button>
+            <button class="inline-button primary" data-action="next" data-id="${escapeHtml(table.id)}" type="button">Próximo status</button>
+            <button class="inline-button" data-action="toggle" data-id="${escapeHtml(table.id)}" type="button">1 clique</button>
           </div>
         </article>
       `
@@ -213,14 +188,14 @@ function renderCustomers(customers) {
             (customer) => `
               <article class="table-card">
                 <div class="row">
-                  <h3>${customer.name}</h3>
+                  <h3>${escapeHtml(customer.name)}</h3>
                   <span class="table-status" data-status="available">Cliente</span>
                 </div>
-                <div class="capacity"><strong>ID:</strong> ${customer.id}</div>
-                <div class="capacity"><strong>Nome:</strong> ${customer.name}</div>
-                <div class="capacity"><strong>Login:</strong> ${customer.login}</div>
-                <div class="capacity"><strong>Pagamentos:</strong> ${maskPaymentKey(customer.payment_key)}</div>
-                <div class="capacity"><strong>Pedidos:</strong> ${customer.order_count || 0}</div>
+                <div class="capacity"><strong>ID:</strong> ${escapeHtml(customer.id)}</div>
+                <div class="capacity"><strong>Nome:</strong> ${escapeHtml(customer.name)}</div>
+                <div class="capacity"><strong>Login:</strong> ${escapeHtml(customer.login)}</div>
+                <div class="capacity"><strong>Pagamentos:</strong> ${escapeHtml(maskPaymentKey(customer.payment_key))}</div>
+                <div class="capacity"><strong>Pedidos:</strong> ${escapeHtml(customer.order_count || 0)}</div>
               </article>
             `
           )
@@ -235,7 +210,7 @@ async function loadCustomers() {
     const customers = await apiFetch('/api/customers');
     renderCustomers(customers);
   } catch (error) {
-    if (customersList) customersList.innerHTML = `<p>${error.message}</p>`;
+    if (customersList) customersList.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -248,15 +223,15 @@ function renderProducts(products) {
           (product) => `
             <article class="table-card">
               <div class="row">
-                <h3>${product.name}</h3>
-                <span class="table-status" data-status="available">${product.category}</span>
+                <h3>${escapeHtml(product.name)}</h3>
+                <span class="table-status" data-status="available">${escapeHtml(product.category)}</span>
               </div>
-              <div class="capacity"><strong>Descrição:</strong> ${product.description || 'Sem descrição'}</div>
-              <div class="capacity"><strong>Valor:</strong> R$ ${Number(product.price || 0).toFixed(2)}</div>
-              <div class="capacity"><strong>Sabores:</strong> ${product.flavors || '—'}</div>
-              <div class="capacity"><strong>Tamanhos:</strong> ${product.sizes || '—'}</div>
-              <div class="capacity"><strong>Borda:</strong> ${product.dough_type || '—'}</div>
-              <div class="capacity"><strong>Medida:</strong> ${product.measure || '—'}</div>
+              <div class="capacity"><strong>Descrição:</strong> ${escapeHtml(product.description || 'Sem descrição')}</div>
+              <div class="capacity"><strong>Valor:</strong> ${currencyDot(product.price)}</div>
+              <div class="capacity"><strong>Sabores:</strong> ${escapeHtml(product.flavors || '—')}</div>
+              <div class="capacity"><strong>Tamanhos:</strong> ${escapeHtml(product.sizes || '—')}</div>
+              <div class="capacity"><strong>Borda:</strong> ${escapeHtml(product.dough_type || '—')}</div>
+              <div class="capacity"><strong>Medida:</strong> ${escapeHtml(product.measure || '—')}</div>
             </article>
           `
         )
@@ -269,7 +244,7 @@ async function loadProducts() {
     const products = await apiFetch('/api/menu');
     renderProducts(products);
   } catch (error) {
-    if (productsList) productsList.innerHTML = `<p>${error.message}</p>`;
+    if (productsList) productsList.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -292,21 +267,21 @@ function renderOrders(orders) {
           return `
             <article class="table-card">
               <div class="row">
-                <h3>${order.order_code || `Pedido #${order.id}`}</h3>
-                <span class="table-status" data-status="${orderStatusPill[order.status] || 'available'}">${orderStatusMap[order.status] || order.status}</span>
+                <h3>${escapeHtml(order.order_code || `Pedido #${order.id}`)}</h3>
+                <span class="table-status" data-status="${orderStatusPill[order.status] || 'available'}">${escapeHtml(orderStatusMap[order.status] || order.status)}</span>
               </div>
-              <div class="capacity"><strong>Cliente:</strong> ${order.customer_name || 'Cliente'}</div>
-              ${order.customer_phone ? `<div class="capacity"><strong>Telefone:</strong> <a href="tel:${order.customer_phone}">${order.customer_phone}</a></div>` : ''}
-              <div class="capacity"><strong>Local:</strong> ${order.delivery_location || 'Sem endereço'}</div>
-              <div class="capacity"><strong>Pagamento:</strong> ${order.payment_method || '—'}${order.origin === 'balcao' ? ' (balcão)' : ''}</div>
-              ${order.notes ? `<div class="capacity"><strong>Observações:</strong> ${order.notes}</div>` : ''}
-              <div class="capacity"><strong>Valor total:</strong> R$ ${Number(order.total_value || 0).toFixed(2)}</div>
-              <div class="capacity"><strong>Itens:</strong> ${order.items?.map((item) => `${item.product_name} x ${item.quantity}`).join(', ') || 'Nenhum item'}</div>
+              <div class="capacity"><strong>Cliente:</strong> ${escapeHtml(order.customer_name || 'Cliente')}</div>
+              ${order.customer_phone ? `<div class="capacity"><strong>Telefone:</strong> <a href="tel:${escapeHtml(PL.format.telNumber(order.customer_phone))}">${escapeHtml(order.customer_phone)}</a></div>` : ''}
+              <div class="capacity"><strong>Local:</strong> ${escapeHtml(order.delivery_location || 'Sem endereço')}</div>
+              <div class="capacity"><strong>Pagamento:</strong> ${escapeHtml(order.payment_method || '—')}${order.origin === 'balcao' ? ' (balcão)' : ''}</div>
+              ${order.notes ? `<div class="capacity"><strong>Observações:</strong> ${escapeHtml(order.notes)}</div>` : ''}
+              <div class="capacity"><strong>Valor total:</strong> ${currencyDot(order.total_value)}</div>
+              <div class="capacity"><strong>Itens:</strong> ${escapeHtml(order.items?.map((item) => `${item.product_name} x ${item.quantity}`).join(', ') || 'Nenhum item')}</div>
               <div class="type-actions">
                 ${actions
                   .map(
                     (action) => `
-                      <button class="inline-button ${action.tone}" data-order-status="${action.status}" data-order-id="${order.id}" type="button">${action.label}</button>
+                      <button class="inline-button ${action.tone}" data-order-status="${action.status}" data-order-id="${escapeHtml(order.id)}" type="button">${action.label}</button>
                     `
                   )
                   .join('') || '<span class="muted-text">Sem ações disponíveis</span>'}
@@ -326,10 +301,19 @@ function renderOrders(orders) {
         return;
       }
 
-      await apiFetch(`/api/orders/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
+      // O servidor recusa transicoes fora do perfil (ex.: cozinha confirmando
+      // pagamento): mostra o motivo em vez de falhar em silencio.
+      button.disabled = true;
+      try {
+        await apiFetch(`/api/orders/${id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        });
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        button.disabled = false;
+      }
       loadOrders();
     });
   });
@@ -340,7 +324,7 @@ async function loadOrders() {
     const orders = await apiFetch('/api/orders');
     renderOrders(orders);
   } catch (error) {
-    if (ordersList) ordersList.innerHTML = `<p>${error.message}</p>`;
+    if (ordersList) ordersList.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -369,7 +353,7 @@ async function handleProductCreate(event) {
     productForm.reset();
     loadProducts();
   } catch (error) {
-    if (productsList) productsList.innerHTML = `<p>${error.message}</p>`;
+    if (productsList) productsList.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -382,6 +366,7 @@ if (loginForm) {
     const password = document.getElementById('password').value;
 
     try {
+      // Login usa fetch direto: aqui um 401 significa "senha errada", nao sessao expirada.
       const data = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -393,7 +378,7 @@ if (loginForm) {
         throw new Error(body.message || 'Falha ao autenticar.');
       }
 
-      setToken(body.token);
+      PL.auth.setToken(body.token);
       showDashboard();
       await loadTables();
     } catch (error) {
@@ -404,7 +389,7 @@ if (loginForm) {
 
 if (logoutButton) {
   logoutButton.addEventListener('click', () => {
-    clearToken();
+    PL.auth.clearToken();
     showLogin();
     if (loginForm) loginForm.reset();
     if (loginMessage) loginMessage.textContent = '';
@@ -437,13 +422,6 @@ if (createTableButton) {
   });
 }
 
-if (adminMenuToggle && adminSidebar) {
-  adminMenuToggle.addEventListener('click', () => {
-    const isOpen = adminSidebar.classList.toggle('open');
-    adminMenuToggle.setAttribute('aria-expanded', String(isOpen));
-  });
-}
-
 if (productCategory && foodFields && drinkFields) {
   const updateProductFields = () => {
     const category = productCategory.value;
@@ -462,11 +440,13 @@ if (productForm) {
   productForm.addEventListener('submit', handleProductCreate);
 }
 
-if (getToken()) {
+if (PL.auth.getToken()) {
   if (loginView && dashboardView) {
     showDashboard();
-    loadTables();
   }
+  // A pagina de mesas nao tem a tela de login do dashboard, mas tambem lista
+  // as mesas: antes ela ficava sempre vazia.
+  if (tableList || summaryGrid) loadTables();
   if (customersList) loadCustomers();
   if (productsList) loadProducts();
   if (ordersList) loadOrders();
@@ -478,4 +458,3 @@ if (getToken()) {
   if (productsList) productsList.innerHTML = '<p>Faça login como administrador para ver os produtos.</p>';
   if (ordersList) ordersList.innerHTML = '<p>Faça login como administrador para ver os pedidos.</p>';
 }
-

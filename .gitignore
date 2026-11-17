@@ -1,8 +1,21 @@
 node_modules/
-.env
 .DS_Store
 npm-debug.log*
 coverage/
 
+# Segredos: so o modelo (.env.example) e o ambiente local de desenvolvimento
+# (.env.development, sem dados reais) sao versionados.
+.env
+.env.local
+.env.production
+.env.*.local
+
 # Banco local de desenvolvimento (producao usa Postgres/Supabase)
 data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs dos emuladores do Firebase
+*-debug.log

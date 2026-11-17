@@ -1,0 +1,23 @@
+/* Base: elementos globais (links, campos herdando a fonte, imagens) e .container.
+   Separado de base/reset.css apenas para manter a ordem original da cascata. */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.container {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}

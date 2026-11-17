@@ -1,0 +1,39 @@
+/* Vitrine: aviso que bloqueia o cardapio ate o cliente informar endereco
+   (ou escolher retirada). */
+
+.menu-gate {
+  margin-top: 28px;
+}
+
+.menu-gate-card {
+  background: var(--panel);
+  border: 2px dashed var(--line);
+  border-radius: 24px;
+  padding: 40px 28px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.menu-gate-icon {
+  font-size: 2.6rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.menu-gate-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.5rem;
+}
+
+.menu-gate-card p {
+  margin: 0 auto 22px;
+  max-width: 560px;
+  color: var(--muted);
+}
+
+.menu-gate-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}

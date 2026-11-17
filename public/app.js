@@ -2,6 +2,10 @@ const API_BASE = '/api';
 const categoryOrder = ['Pizzas', 'Bebidas', 'Promos', 'Sobremesas'];
 const SESSION_KEY = 'pl-pizzas-session';
 
+// Escape de HTML compartilhado (js/core.js, carregado antes deste arquivo).
+// Todo dado da API/banco que entra em innerHTML passa por aqui.
+const { escapeHtml } = PL.dom;
+
 function getSession() {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
@@ -18,48 +22,27 @@ function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-function makeIllustration(label, accent, secondary, emoji) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
-      <defs>
-        <linearGradient id="g" x1="0" x2="1">
-          <stop offset="0%" stop-color="${secondary}"/>
-          <stop offset="100%" stop-color="${accent}"/>
-        </linearGradient>
-      </defs>
-      <rect width="600" height="420" rx="28" fill="url(#g)"/>
-      <circle cx="300" cy="180" r="110" fill="rgba(255,255,255,0.2)"/>
-      <text x="300" y="188" font-size="120" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
-      <rect x="44" y="300" width="512" height="62" rx="18" fill="rgba(255,255,255,0.2)"/>
-      <text x="300" y="338" font-size="26" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" fill="#fff">${label}</text>
-    </svg>
-  `;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+// Ilustracoes dos produtos: desenhadas por /js/art.js (PLArt) a partir do
+// nome e da categoria. Cada ilustracao gerada fica registrada para que
+// safeImageSrc() so aceite, alem de http(s) e caminhos do site, o que o
+// proprio app desenhou.
+const GENERATED_ART = new Map();
+const GENERATED_ART_URLS = new Set();
+
+function artFor(item) {
+  const key = `${item?.category || ''}|${item?.name || ''}`;
+  if (!GENERATED_ART.has(key)) {
+    const url = window.PLArt ? window.PLArt.forProduct(item) : '';
+    GENERATED_ART.set(key, url);
+    if (url) GENERATED_ART_URLS.add(url);
+  }
+  return GENERATED_ART.get(key);
 }
 
-const FALLBACK_IMAGES = {
-  'Calabresa': makeIllustration('Calabresa', '#d71920', '#ffe4e2', '🍕'),
-  'Frango com Catupiry': makeIllustration('Frango com Catupiry', '#f59f1a', '#fff3d9', '🍗'),
-  'Portuguesa': makeIllustration('Portuguesa', '#d71920', '#fff0e8', '🍕'),
-  'Margherita': makeIllustration('Margherita', '#a6d65a', '#edf8d9', '🍕'),
-  'Pepperoni': makeIllustration('Pepperoni', '#c53d25', '#ffe0dc', '🌶️'),
-  'Chocolate com Morango': makeIllustration('Chocolate com Morango', '#a52d62', '#fce4ef', '🍫'),
-  'Banana com Canela': makeIllustration('Banana com Canela', '#e7a84d', '#fff0d7', '🍌'),
-  'Guaraná de 1L': makeIllustration('Guaraná', '#d71920', '#ffe1df', '🥤'),
-  'Água Mineral': makeIllustration('Água', '#38a4d8', '#ddf4ff', '💧'),
-  'Pepsi 1L': makeIllustration('Pepsi', '#1d4d9a', '#dfe9ff', '🥤'),
-  'H2OH Limoneto 500ml': makeIllustration('Limoneto', '#46c297', '#e1fdf1', '🍋'),
-  'Coca Cola de 1.5L': makeIllustration('Coca Cola', '#b81d20', '#ffe2e0', '🥤'),
-  'Coca Cola zero 1,5L': makeIllustration('Coca Zero', '#2d5ea8', '#dfe8ff', '🥤'),
-  'Combo Família': makeIllustration('Combo Família', '#d71920', '#ffe9d4', '🎉'),
-  'Petit Gateau': makeIllustration('Petit Gateau', '#7b4b2f', '#f5e3d9', '🍰'),
-  Bebidas: makeIllustration('Bebidas', '#3fa1d8', '#dff6ff', '🥤'),
-  Pizzas: makeIllustration('Pizzas', '#d71920', '#ffe6df', '🍕'),
-  Promos: makeIllustration('Promo', '#e99e1f', '#fff4d6', '🎉'),
-  Sobremesas: makeIllustration('Sobremesas', '#a33a68', '#f9e2ef', '🍰'),
-  bebidas: makeIllustration('Bebidas', '#3fa1d8', '#dff6ff', '🥤'),
-  pizzas: makeIllustration('Pizzas', '#d71920', '#ffe6df', '🍕'),
-};
+function safeImageSrc(url) {
+  if (GENERATED_ART_URLS.has(url)) return url;
+  return PL.dom.safeUrl(url);
+}
 
 const state = {
   category: 'Pizzas',
@@ -271,13 +254,16 @@ async function loadStoreSettings() {
       storeBrandName.textContent = data.companyName || 'PL Pizza';
     }
     if (storeBrandLogo && data.logoUrl) {
+      // Link quebrado (ex.: arquivo num Storage que saiu do ar) volta ao logo padrao.
+      const fallbackLogo = storeBrandLogo.getAttribute('src');
+      storeBrandLogo.addEventListener('error', () => { storeBrandLogo.src = fallbackLogo; }, { once: true });
       storeBrandLogo.src = data.logoUrl;
     }
     if (storeBrandSubtitle) {
       storeBrandSubtitle.textContent = data.phone ? `Contato: ${data.phone}` : 'Pizza artesanal';
     }
     if (storeAddressText) {
-      storeAddressText.innerHTML = `${data.address || 'Santo Amaro, Recife - PE'}<br />${data.isOpen ? 'Aberto e pronto para receber você com o melhor sabor.' : 'Loja fechada no momento.'}`;
+      storeAddressText.innerHTML = `${escapeHtml(data.address || 'Santo Amaro, Recife - PE')}<br />${data.isOpen ? 'Aberto e pronto para receber você com o melhor sabor.' : 'Loja fechada no momento.'}`;
     }
 
     applyStoreOpenState(data.isOpen);
@@ -307,19 +293,11 @@ function toCurrency(value) {
 }
 
 function resolveItemImage(item) {
-  if (typeof item.image === 'string' && item.image.startsWith('http')) {
+  // So http(s) de verdade; o resto ganha a ilustracao do PLArt.
+  if (typeof item.image === 'string' && /^https?:\/\//.test(item.image)) {
     return item.image;
   }
-
-  if (item.name && FALLBACK_IMAGES[item.name]) {
-    return FALLBACK_IMAGES[item.name];
-  }
-
-  if (item.category && FALLBACK_IMAGES[item.category]) {
-    return FALLBACK_IMAGES[item.category];
-  }
-
-  return FALLBACK_IMAGES.pizzas;
+  return artFor(item);
 }
 
 function buildCartKey(entry) {
@@ -416,7 +394,8 @@ async function loadSiteQrCode() {
   try {
     const data = await fetch(`${API_BASE}/store/qrcode`).then((response) => response.json());
     image.src = data.dataUrl;
-    if (link) link.href = data.url;
+    // So http(s)/caminho local: evita link "javascript:" vindo da API.
+    if (link && PL.dom.safeUrl(data.url)) link.href = data.url;
   } catch {
     image.closest('.qr-card')?.classList.add('hidden');
   }
@@ -462,17 +441,17 @@ function renderCart() {
     .map(
       (item) => `
         <article class="cart-item">
-          <img src="${item.image}" alt="${item.name}" />
+          <img src="${escapeHtml(safeImageSrc(item.image))}" alt="${escapeHtml(item.name)}" />
           <div class="cart-details">
             <div class="cart-header">
-              <h4>${item.name}</h4>
+              <h4>${escapeHtml(item.name)}</h4>
               <strong>${toCurrency(item.price * item.quantity)}</strong>
             </div>
-            <div class="cart-meta">${describeCartEntry(item) || 'Padrão'}</div>
+            <div class="cart-meta">${escapeHtml(describeCartEntry(item) || 'Padrão')}</div>
             <div class="cart-controls">
-              <button type="button" data-action="decrease" data-key="${item.key}">−</button>
+              <button type="button" data-action="decrease" data-key="${escapeHtml(item.key)}">−</button>
               <span>${item.quantity}</span>
-              <button type="button" data-action="increase" data-key="${item.key}">+</button>
+              <button type="button" data-action="increase" data-key="${escapeHtml(item.key)}">+</button>
             </div>
           </div>
         </article>
@@ -514,18 +493,34 @@ async function fetchMenu(category = null) {
   return response.json();
 }
 
+// Ordem das abas: pizzas primeiro, depois bebidas, promocoes e sobremesas,
+// mesmo quando o nome cadastrado e mais longo ("Pizzas Salgadas e Doces").
+function orderedCategories(items) {
+  const rank = (category) => {
+    const normalized = normalizeCategory(category);
+    const index = categoryOrder.findIndex((entry) => normalized.startsWith(normalizeCategory(entry)));
+    return index === -1 ? categoryOrder.length : index;
+  };
+  return [...new Set(items.map((item) => item.category))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 function renderCategories(items) {
-  const categories = [...new Set(items.map((item) => item.category))];
-  const available = categoryOrder.filter((category) => categories.includes(category));
-  const others = categories.filter((category) => !categoryOrder.includes(category));
-  const allCategories = [...available, ...others];
+  const allCategories = orderedCategories(items);
 
   categoryTabs.innerHTML = '';
   allCategories.forEach((category) => {
     const button = document.createElement('button');
+    const isActive = state.category === category;
     button.type = 'button';
-    button.className = `category-tab ${state.category === category ? 'active' : ''}`;
+    button.className = `category-tab ${isActive ? 'active' : ''}`;
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', String(isActive));
     button.textContent = category;
+    // Contador em sobrescrito ao lado do nome da categoria.
+    const count = document.createElement('sup');
+    count.className = 'category-tab__count';
+    count.textContent = String(items.filter((item) => item.category === category).length);
+    button.appendChild(count);
     button.addEventListener('click', () => {
       state.category = category;
       renderMenu();
@@ -589,7 +584,7 @@ function renderMenu() {
         <label>
           <span>Tamanho</span>
           <select data-role="size">
-            ${sizes.map((size) => `<option value="${size.key}">${size.label} — ${toCurrency(size.price)}</option>`).join('')}
+            ${sizes.map((size) => `<option value="${escapeHtml(size.key)}">${escapeHtml(size.label)} — ${toCurrency(size.price)}</option>`).join('')}
           </select>
         </label>
       `;
@@ -603,7 +598,7 @@ function renderMenu() {
         <label>
           <span>Borda / massa</span>
           <select data-role="dough">
-            ${doughs.map((dough) => `<option value="${dough}">${dough}</option>`).join('')}
+            ${doughs.map((dough) => `<option value="${escapeHtml(dough)}">${escapeHtml(dough)}</option>`).join('')}
           </select>
         </label>
       `;
@@ -619,7 +614,7 @@ function renderMenu() {
           ${extras
             .map(
               (extra) =>
-                `<label><input type="checkbox" data-role="extra" value="${extra.id}" /> ${extra.name} (+${toCurrency(extra.price)})</label>`
+                `<label><input type="checkbox" data-role="extra" value="${escapeHtml(extra.id)}" /> ${escapeHtml(extra.name)} (+${toCurrency(extra.price)})</label>`
             )
             .join('')}
         </div>
@@ -669,7 +664,7 @@ async function initMenu() {
     state.extras = extras;
 
     // A categoria padrão pode não existir no cardápio real; cai para a primeira disponível.
-    const availableCategories = [...new Set(items.map((item) => item.category))];
+    const availableCategories = orderedCategories(items);
     if (items.length > 0 && !availableCategories.includes(state.category)) {
       state.category = availableCategories[0];
     }
@@ -677,7 +672,7 @@ async function initMenu() {
     renderMenu();
     renderCart();
   } catch (error) {
-    menuGrid.innerHTML = `<p class="empty-state">${error.message}</p>`;
+    menuGrid.innerHTML = `<p class="empty-state">${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -739,8 +734,8 @@ function renderClientDashboard(mode = 'history') {
         <h4>Histórico de compras</h4>
         <div class="customer-list">
           <div class="row-item"><strong>Último pedido:</strong> Pedido em preparação.</div>
-          <div class="row-item"><strong>Quantidade de pedidos:</strong> ${session.user?.orderCount || 1}</div>
-          <div class="row-item"><strong>Pagamento preferencial:</strong> ${session.user?.paymentKey || 'PIX'}</div>
+          <div class="row-item"><strong>Quantidade de pedidos:</strong> ${escapeHtml(session.user?.orderCount || 1)}</div>
+          <div class="row-item"><strong>Pagamento preferencial:</strong> ${escapeHtml(session.user?.paymentKey || 'PIX')}</div>
         </div>
       </div>
     `;
@@ -798,7 +793,7 @@ async function loginFromSidebar() {
 async function registerCustomer() {
   const name = window.prompt('Qual o nome do cliente?');
   const login = window.prompt('Digite o login desejado:');
-  const password = window.prompt('Digite a senha:');
+  const password = window.prompt('Digite a senha (mínimo 8 caracteres):');
 
   if (!name || !login || !password) {
     sidebarLoginMessage.textContent = 'Preencha nome, login e senha para cadastrar.';
@@ -1083,6 +1078,10 @@ if (accountButton) {
 }
 
 sidebarClose.addEventListener('click', closeSidebar);
+// Links de navegacao do menu lateral (celular) fecham o menu ao navegar.
+document.querySelectorAll('[data-sidebar-link]').forEach((link) => {
+  link.addEventListener('click', closeSidebar);
+});
 sideLoginForm.addEventListener('submit', (event) => {
   event.preventDefault();
   loginFromSidebar();

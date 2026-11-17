@@ -3,85 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PL Pizza | Cardápio</title>
-    <meta name="description" content="Cardápio digital da PL Pizza, com pizzas artesanais, bebidas e promoções." />
+    <title>PL Pizza | Pizza artesanal em Recife</title>
+    <meta
+      name="description"
+      content="PL Pizza: pizzas artesanais em Santo Amaro, Recife. Peça pelo site com delivery, retirada ou para comer no local."
+    />
+    <meta name="theme-color" content="#e3262e" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/theme.js"></script>
   </head>
-  <body>
-    <header class="topbar" id="top">
-      <div class="topbar-main">
-        <div class="container topbar-main-inner">
-          <a class="brand" href="#top" aria-label="Página inicial">
-            <img class="brand-logo" id="storeBrandLogo" src="/logo-pl-real.png" alt="" />
-            <span class="brand-wordmark" id="storeBrandName">PL Pizza</span>
-          </a>
+  <body class="site">
+    <a class="skip-link" href="#cardapio">Pular para o cardápio</a>
 
-          <nav class="topbar-nav" aria-label="Menu principal">
-            <a href="#top" class="topbar-nav-item" data-nav="home"><span aria-hidden="true">🏠</span> Home</a>
-            <a href="#menu" class="topbar-nav-item" data-nav="cardapio"><span aria-hidden="true">📋</span> Cardápio</a>
-            <a href="#promo" class="topbar-nav-item" data-nav="clube"><span aria-hidden="true">⭐</span> Clube PL</a>
-            <a href="#promo" class="topbar-nav-item" data-nav="cupons"><span aria-hidden="true">🎟️</span> Cupons</a>
-          </nav>
+    <!-- ============================================================ Topo -->
+    <header class="site-header" id="top">
+      <div class="nav-float">
+        <a class="nav-brand" href="#top" aria-label="PL Pizza, voltar ao início">
+          <img class="nav-brand__logo" id="storeBrandLogo" src="/logo-pl-real.png" alt="" />
+          <span class="nav-brand__name" id="storeBrandName">PL Pizza</span>
+        </a>
 
-          <div class="topbar-actions">
-            <button class="topbar-theme-toggle" data-theme-toggle type="button" title="Alternar tema claro/escuro">🌙 Tema escuro</button>
-            <div class="topbar-auth" id="topbarGuestActions">
-              <button id="loginButton" class="topbar-button outline" type="button">Entrar</button>
-              <button id="registerButton" class="topbar-button solid" type="button">Criar conta</button>
-            </div>
-            <div class="topbar-auth hidden" id="topbarUserActions">
-              <button id="accountButton" class="topbar-button outline" type="button">Minha conta</button>
-            </div>
-            <button id="sidebarToggle" class="topbar-menu-toggle" type="button" aria-expanded="false" aria-label="Abrir menu">
-              <span aria-hidden="true">☰</span>
-            </button>
+        <nav class="nav-links" aria-label="Menu principal">
+          <a href="#cardapio" data-nav="cardapio">Cardápio</a>
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#local">Visite</a>
+          <a href="#duvidas">Dúvidas</a>
+        </nav>
+
+        <div class="nav-actions">
+          <button class="theme-switch" data-theme-toggle type="button" aria-label="Alternar tema claro/escuro"></button>
+
+          <div class="nav-auth" id="topbarGuestActions">
+            <button id="loginButton" class="pill pill--ghost" type="button">Entrar</button>
+            <button id="registerButton" class="pill pill--light" type="button">Criar conta</button>
           </div>
-        </div>
-      </div>
-
-      <div class="topbar-sub">
-        <div class="container topbar-sub-inner">
-          <div class="mode-switch" role="group" aria-label="Como você quer receber o pedido">
-            <button type="button" class="mode-option is-active" data-mode="delivery">Delivery</button>
-            <button type="button" class="mode-option" data-mode="retirada">Retirada</button>
-            <button type="button" class="mode-option" data-mode="local">Comer no local</button>
+          <div class="nav-auth hidden" id="topbarUserActions">
+            <button id="accountButton" class="pill pill--ghost" type="button">Minha conta</button>
           </div>
 
-          <button id="locationButton" class="location-pill" type="button" aria-haspopup="dialog">
-            <span class="pill-icon" aria-hidden="true">📍</span>
-            <span class="pill-text">
-              <strong id="locationLabel">Local</strong>
-              <span id="locationValue">Informe seu endereço</span>
-            </span>
-            <span class="pill-chevron" aria-hidden="true">⌄</span>
+          <button id="cartButton" class="nav-cart" type="button" aria-label="Ver carrinho">
+            <svg class="nav-cart__icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 4h2.4l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.4L21 8H6.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="10" cy="20" r="1.6" fill="currentColor" />
+              <circle cx="17" cy="20" r="1.6" fill="currentColor" />
+            </svg>
+            <strong class="nav-cart__total" id="cartTotalLabel">R$ 0,00</strong>
+            <span class="nav-cart__count" id="cartCount">0</span>
           </button>
 
-          <button id="cartButton" class="cart-pill" type="button">
-            <span class="pill-icon" aria-hidden="true">🛒</span>
-            <span class="pill-text">
-              <strong id="cartTotalLabel">R$ 0,00</strong>
-              <span><span id="cartCount">0</span> itens</span>
-            </span>
-            <span class="pill-chevron" aria-hidden="true">›</span>
+          <button id="sidebarToggle" class="nav-burger" type="button" aria-expanded="false" aria-label="Abrir menu">
+            <span></span><span></span><span></span>
           </button>
         </div>
       </div>
     </header>
 
+    <!-- ======================================================= Endereco -->
     <div id="addressModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addressModalTitle">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 id="addressModalTitle">Onde você quer receber seu pedido?</h3>
+          <div>
+            <p class="eyebrow-bracket">Delivery</p>
+            <h3 id="addressModalTitle">Onde você quer receber?</h3>
+          </div>
           <button id="addressModalClose" class="icon-button" type="button" aria-label="Fechar">×</button>
         </div>
         <form id="addressForm" class="modal-form">
           <label>
             <span>Endereço e número</span>
-            <input id="addressStreet" type="text" placeholder="Ex.: Barros Barreto, 770" required />
+            <input id="addressStreet" type="text" placeholder="Ex.: Barros Barreto, 770" autocomplete="street-address" required />
           </label>
           <label>
             <span>Bairro</span>
@@ -91,142 +84,196 @@
             <span>Complemento / referência <small>(opcional)</small></span>
             <input id="addressComplement" type="text" placeholder="Apartamento, bloco, ponto de referência" />
           </label>
-          <button type="submit" class="button primary full">Salvar e ver cardápio</button>
+          <button type="submit" class="ticket-btn ticket-btn--full">Salvar e ver cardápio</button>
           <p id="addressMessage" class="checkout-message" aria-live="polite"></p>
         </form>
       </div>
     </div>
 
-    <aside id="sidebarMenu" class="sidebar-menu" aria-label="Barra lateral do cliente">
+    <!-- =================================================== Menu lateral -->
+    <aside id="sidebarMenu" class="sidebar-menu" aria-label="Menu e conta do cliente">
       <div class="sidebar-header">
-        <h3>Minha conta</h3>
+        <span class="sidebar-title">Menu</span>
         <button id="sidebarClose" class="icon-button" type="button" aria-label="Fechar menu">×</button>
       </div>
 
+      <nav class="sidebar-nav" aria-label="Seções do site">
+        <a href="#cardapio" data-sidebar-link>Cardápio</a>
+        <a href="#como-funciona" data-sidebar-link>Como funciona</a>
+        <a href="#local" data-sidebar-link>Visite a pizzaria</a>
+        <a href="#duvidas" data-sidebar-link>Dúvidas</a>
+      </nav>
+
       <div id="guestSidebar" class="sidebar-section active">
-        <h4>Login</h4>
+        <h4>Entrar na sua conta</h4>
         <form id="sideLoginForm" class="sidebar-form">
           <label>
             <span>Usuário</span>
-            <input id="sidebarUsername" type="text" placeholder="Seu login" required />
+            <input id="sidebarUsername" type="text" placeholder="Seu login" autocomplete="username" required />
           </label>
           <label>
             <span>Senha</span>
-            <input id="sidebarPassword" type="password" placeholder="Sua senha" required />
+            <input id="sidebarPassword" type="password" placeholder="Sua senha" autocomplete="current-password" required />
           </label>
-          <button type="submit" class="button primary full">Entrar</button>
-          <button id="registerCustomerButton" type="button" class="button ghost full">Cadastrar cliente</button>
+          <button type="submit" class="ticket-btn ticket-btn--full">Entrar</button>
+          <button id="registerCustomerButton" type="button" class="pill pill--outline pill--full">Criar conta de cliente</button>
         </form>
         <div id="sidebarLoginMessage" class="sidebar-message" aria-live="polite"></div>
       </div>
 
       <div id="customerSidebar" class="sidebar-section hidden">
-        <h4>Cliente</h4>
+        <h4>Minha conta</h4>
         <div id="customerGreeting" class="sidebar-greeting"></div>
-        <button type="button" class="sidebar-action" data-view="history">Histórico de compra</button>
-        <button type="button" class="sidebar-action" data-view="status">Status atual do pedido</button>
+        <button type="button" class="sidebar-action" data-view="history">Histórico de pedidos</button>
+        <button type="button" class="sidebar-action" data-view="status">Status do pedido atual</button>
         <button id="adminPanelButton" type="button" class="sidebar-action admin-panel-button hidden">Painel administrativo</button>
-        <button type="button" class="sidebar-action" data-view="menu">Voltar ao menu</button>
-        <button id="sidebarLogout" type="button" class="button ghost full">Sair</button>
+        <button type="button" class="sidebar-action" data-view="menu">Voltar ao cardápio</button>
+        <button id="sidebarLogout" type="button" class="pill pill--outline pill--full">Sair</button>
       </div>
     </aside>
 
-    <main>
-      <section class="hero container">
-        <div class="hero-copy">
-          <span class="eyebrow">Bem-vindo(a) à PL Pizza</span>
-          <h1>Pizzas artesanais com sabor que conquista todos os gostos.</h1>
-          <p>
+    <main id="conteudo">
+      <!-- ========================================================= Hero -->
+      <section class="hero-poster" aria-labelledby="heroTitle">
+        <div class="hero-poster__art" aria-hidden="true">
+          <img class="float-art float-art--a" data-art="decor:slice" alt="" />
+          <img class="float-art float-art--b" data-art="decor:basil" alt="" />
+          <img class="float-art float-art--c" data-art="decor:tomato" alt="" />
+          <img class="float-art float-art--d" data-art="decor:chili" alt="" />
+          <img class="float-art float-art--e" data-art="decor:mushroom" alt="" />
+        </div>
+
+        <div class="hero-poster__inner">
+          <p class="eyebrow-bracket">Massa artesanal · Santo Amaro, Recife</p>
+          <h1 id="heroTitle" class="display display--hero">
+            <span class="display__line">Pizza</span>
+            <span class="display__line display__line--with-art">
+              <span>de</span>
+              <img class="display__pizza" data-art="pizza:margherita" alt="" />
+              <span>verdade</span>
+            </span>
+            <span class="display__line display__line--paren">(feita na hora)</span>
+          </h1>
+          <p class="hero-poster__lead">
             Massa artesanal, ingredientes selecionados e sabor que encanta. Peça agora e aproveite o melhor da pizza em Recife.
           </p>
-          <div class="hero-actions">
-            <a href="#menu" class="button primary">Ver cardápio</a>
-            <a href="#local" class="button secondary">Visitar a pizzaria</a>
-          </div>
-          <div class="strength-row">
-            <span>📍 Santo Amaro, Recife</span>
-            <span>⏱ 40–60 min</span>
-            <span>🍕 Até 2 sabores</span>
+          <div class="hero-poster__cta">
+            <a href="#cardapio" class="ticket-btn" data-nav="cardapio">Ver cardápio</a>
+            <a href="#local" class="ticket-btn ticket-btn--outline">Visitar a pizzaria</a>
           </div>
         </div>
 
-        <div class="hero-card">
-          <div class="mini-badge">Melhor escolha</div>
-          <h3>Pizza grande</h3>
-          <ul>
-            <li>Até 2 sabores</li>
-            <li>Massa artesanal</li>
-            <li>Entrega ou retirada</li>
-          </ul>
-          <strong>a partir de R$ 30</strong>
+        <ul class="hero-facts" aria-label="Destaques">
+          <li><strong>40–60</strong><span>minutos de entrega</span></li>
+          <li><strong>2</strong><span>sabores por pizza</span></li>
+          <li><strong>R$ 30</strong><span>pizza grande a partir de</span></li>
+        </ul>
+      </section>
+
+      <!-- ===================================================== Faixa -->
+      <div class="marquee" id="promo" aria-hidden="true">
+        <div class="marquee__track">
+          <span>Pizza artesanal</span><span>✦</span><span>Até 2 sabores</span><span>✦</span><span>Delivery, retirada ou no salão</span><span>✦</span><span>Pix, cartão ou dinheiro</span><span>✦</span>
+          <span>Pizza artesanal</span><span>✦</span><span>Até 2 sabores</span><span>✦</span><span>Delivery, retirada ou no salão</span><span>✦</span><span>Pix, cartão ou dinheiro</span><span>✦</span>
+        </div>
+      </div>
+
+      <!-- ============================================= Como quer pedir -->
+      <section class="order-ticket" aria-labelledby="orderTicketTitle">
+        <div class="order-ticket__card">
+          <div class="order-ticket__intro">
+            <p class="eyebrow-bracket">Seu pedido</p>
+            <h2 id="orderTicketTitle" class="order-ticket__title">Como você quer receber?</h2>
+          </div>
+
+          <div class="mode-switch" role="group" aria-label="Como você quer receber o pedido">
+            <button type="button" class="mode-option is-active" data-mode="delivery">Delivery</button>
+            <button type="button" class="mode-option" data-mode="retirada">Retirada</button>
+            <button type="button" class="mode-option" data-mode="local">Comer no local</button>
+          </div>
+
+          <button id="locationButton" class="location-pill" type="button" aria-haspopup="dialog">
+            <svg class="location-pill__icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2" />
+              <circle cx="12" cy="9.5" r="2.5" fill="currentColor" />
+            </svg>
+            <span class="pill-text">
+              <strong id="locationLabel">Local</strong>
+              <span id="locationValue">Informe seu endereço</span>
+            </span>
+            <span class="pill-chevron" aria-hidden="true">›</span>
+          </button>
         </div>
       </section>
 
-      <section id="storeStatusBanner" class="promo-banner container hidden">
-        <div>
-          <span class="promo-tag">Loja fechada</span>
-          <h2>Estamos fechados no momento. Volte em breve para fazer seu pedido.</h2>
-        </div>
-        <a class="button primary" href="#menu">Ver cardápio</a>
+      <!-- ==================================================== Avisos -->
+      <section id="storeStatusBanner" class="notice notice--closed hidden" role="status">
+        <span class="promo-tag">Loja fechada</span>
+        <h2>Estamos fechados no momento. Volte em breve para fazer seu pedido.</h2>
       </section>
 
-      <section id="paymentStatusBanner" class="promo-banner container hidden">
-        <div>
-          <span id="paymentStatusTag" class="promo-tag"></span>
-          <h2 id="paymentStatusMessage"></h2>
-        </div>
+      <section id="paymentStatusBanner" class="notice hidden" role="status">
+        <span id="paymentStatusTag" class="promo-tag"></span>
+        <h2 id="paymentStatusMessage"></h2>
       </section>
 
-      <section class="promo-banner container" id="promo">
-        <div>
-          <span class="promo-tag">Promoção</span>
-          <h2>Peça sua pizza favorita e aproveite o sabor da casa</h2>
-        </div>
-        <a class="button primary" href="#menu">Peça agora</a>
-      </section>
+      <!-- ================================================== Cardapio -->
+      <section class="menu-block" id="cardapio" aria-labelledby="menuTitle">
+        <header class="section-head">
+          <p class="eyebrow-bracket">O cardápio</p>
+          <h2 id="menuTitle" class="display display--section">Escolha<br />sua pizza</h2>
+          <p class="section-head__lead">Sabores salgados e doces, com tamanho, borda e adicionais do seu jeito.</p>
+        </header>
 
-      <section id="menuGate" class="container menu-gate hidden">
-        <div class="menu-gate-card">
-          <span class="menu-gate-icon" aria-hidden="true">📍</span>
-          <h3>Informe seu endereço para ver o cardápio</h3>
-          <p>
-            Para pedidos em <strong>Delivery</strong> precisamos do seu endereço para calcular a entrega.
-            Se preferir, escolha <strong>Retirada</strong> ou <strong>Comer no local</strong> e veja o cardápio agora mesmo.
-          </p>
-          <div class="menu-gate-actions">
-            <button id="gateAddressButton" class="button primary" type="button">Informar endereço</button>
-            <button id="gatePickupButton" class="button ghost" type="button">Quero retirar na loja</button>
+        <div id="menuGate" class="menu-gate hidden">
+          <div class="menu-gate-card">
+            <p class="eyebrow-bracket">Delivery</p>
+            <h3>Informe seu endereço para ver o cardápio</h3>
+            <p>
+              Para pedidos em <strong>Delivery</strong> precisamos do seu endereço para calcular a entrega. Se preferir, escolha
+              <strong>Retirada</strong> ou <strong>Comer no local</strong> e veja o cardápio agora mesmo.
+            </p>
+            <div class="menu-gate-actions">
+              <button id="gateAddressButton" class="ticket-btn" type="button">Informar endereço</button>
+              <button id="gatePickupButton" class="ticket-btn ticket-btn--outline" type="button">Quero retirar na loja</button>
+            </div>
           </div>
         </div>
-      </section>
 
-      <section class="filters container" id="menu">
-        <div class="search-wrap">
-          <input id="searchInput" type="search" placeholder="Buscar por nome ou ingrediente..." aria-label="Buscar produto" />
+        <div class="menu-toolbar" id="menu">
+          <div id="categoryTabs" class="category-tabs" role="tablist" aria-label="Categorias do cardápio"></div>
+          <label class="search-wrap">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2" /><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+            <input id="searchInput" type="search" placeholder="Buscar sabor ou ingrediente" aria-label="Buscar produto" />
+          </label>
         </div>
-        <div id="categoryTabs" class="category-tabs" aria-label="Categorias do cardápio"></div>
+
+        <div class="menu-section" id="menuSection">
+          <div id="menuGrid" class="menu-grid" aria-live="polite"></div>
+        </div>
       </section>
 
-      <section class="container menu-section" id="menuSection">
-        <div id="menuGrid" class="menu-grid" aria-live="polite"></div>
-      </section>
-
-      <section id="customerDashboardSection" class="container customer-dashboard hidden">
+      <!-- ============================================ Area do cliente -->
+      <section id="customerDashboardSection" class="customer-dashboard hidden">
         <div class="customer-panel">
-          <div class="card-title-row">
-            <span class="section-kicker">Área do cliente</span>
-            <h3>Minhas informações</h3>
-          </div>
+          <p class="eyebrow-bracket">Área do cliente</p>
+          <h3>Minhas informações</h3>
           <div id="customerPanelBody" class="customer-panel-body"></div>
         </div>
       </section>
 
-      <section class="container checkout-shell" id="checkout">
+      <!-- =================================================== Checkout -->
+      <section class="checkout-shell" id="checkout" aria-labelledby="checkoutTitle">
+        <header class="section-head section-head--on-wine">
+          <p class="eyebrow-bracket">Finalizar</p>
+          <h2 id="checkoutTitle" class="display display--section">Sua comanda</h2>
+        </header>
+
         <div class="checkout-layout">
-          <div class="checkout-panel">
-            <div class="card-title-row">
-              <span class="section-kicker">Seu pedido</span>
-              <h3>Resumo do carrinho</h3>
+          <div class="checkout-panel comanda">
+            <div class="comanda__head">
+              <h3>Resumo do pedido</h3>
+              <span class="comanda__stamp">PL Pizza</span>
             </div>
             <div id="cartItems" class="cart-items" aria-live="polite"></div>
             <div class="order-summary">
@@ -237,28 +284,25 @@
           </div>
 
           <form id="checkoutForm" class="checkout-form">
-            <div class="card-title-row">
-              <span class="section-kicker">Finalizar compra</span>
-              <h3>Dados da entrega</h3>
-            </div>
+            <h3>Seus dados</h3>
 
             <div class="form-row">
               <label>
                 <span>Nome</span>
-                <input type="text" name="name" placeholder="Seu nome" required />
+                <input type="text" name="name" placeholder="Seu nome" autocomplete="name" required />
               </label>
             </div>
 
             <div class="form-row two-columns">
               <label>
                 <span>Telefone</span>
-                <input type="tel" name="phone" placeholder="(81) 9 9999-9999" required />
+                <input type="tel" name="phone" placeholder="(81) 9 9999-9999" autocomplete="tel" required />
               </label>
               <label>
                 <span>Pagamento</span>
                 <select name="payment" required>
                   <option value="dinheiro">Dinheiro</option>
-                  <option value="cartao">Cartão</option>
+                  <option value="cartao">Cartão (Mercado Pago)</option>
                   <option value="pix">Pix</option>
                 </select>
               </label>
@@ -278,14 +322,14 @@
               </label>
             </div>
 
-            <button type="submit" class="button primary full">Confirmar pedido</button>
+            <button type="submit" class="ticket-btn ticket-btn--full">Confirmar pedido</button>
             <p id="checkoutMessage" class="checkout-message" aria-live="polite"></p>
           </form>
         </div>
 
-        <div id="pixResult" class="qr-card hidden">
-          <div class="card-title-row">
-            <span class="section-kicker">Pagamento Pix</span>
+        <div id="pixResult" class="pix-card hidden">
+          <div class="pix-card__head">
+            <p class="eyebrow-bracket">Pagamento Pix</p>
             <h3>Escaneie para pagar</h3>
           </div>
           <div class="qr-box">
@@ -295,48 +339,127 @@
             <span>Pix copia e cola</span>
             <textarea id="pixCopyPaste" rows="3" readonly></textarea>
           </label>
-          <button id="pixCopyButton" class="button ghost full" type="button">Copiar código Pix</button>
-          <p class="checkout-message">Pedido #<span id="pixOrderId"></span> registrado! Assim que o pagamento for identificado, o preparo começa.</p>
+          <button id="pixCopyButton" class="pill pill--outline pill--full" type="button">Copiar código Pix</button>
+          <p class="checkout-message">Pedido <strong id="pixOrderId"></strong> registrado! Assim que o pagamento for identificado, o preparo começa.</p>
         </div>
       </section>
 
-      <section class="container info-grid">
-        <div class="qr-card">
-          <div class="card-title-row">
-            <span class="section-kicker">Peça pelo site</span>
-            <h3>Escaneie o QR code</h3>
-          </div>
-          <div class="qr-box">
-            <img id="siteQrCode" src="" alt="QR code do cardápio da PL Pizza" />
-          </div>
-          <a id="siteQrLink" class="button primary full" href="/" target="_blank" rel="noreferrer">Abrir cardápio</a>
-        </div>
+      <!-- ============================================== Como funciona -->
+      <section class="how" id="como-funciona" aria-labelledby="howTitle">
+        <header class="section-head">
+          <p class="eyebrow-bracket">Como funciona</p>
+          <h2 id="howTitle" class="display display--section">Do forno<br />pra sua mesa</h2>
+        </header>
+        <ol class="how__steps">
+          <li class="how__step">
+            <span class="how__number">01</span>
+            <h3>Monte do seu jeito</h3>
+            <p>Escolha até 2 sabores, o tamanho, a borda e os adicionais direto no cardápio.</p>
+          </li>
+          <li class="how__step">
+            <span class="how__number">02</span>
+            <h3>Pague como preferir</h3>
+            <p>Pix na hora, cartão pelo Mercado Pago ou dinheiro na entrega ou no balcão.</p>
+          </li>
+          <li class="how__step">
+            <span class="how__number">03</span>
+            <h3>Receba quentinha</h3>
+            <p>Delivery em 40 a 60 minutos ou retirada na loja. Você recebe um código para acompanhar.</p>
+          </li>
+        </ol>
+      </section>
 
-        <div class="visit-card" id="local">
-          <div class="card-title-row">
-            <span class="section-kicker">Local da pizzaria</span>
-            <h3>Visite a PL Pizza</h3>
+      <!-- ===================================================== Visite -->
+      <section class="visit" id="local" aria-labelledby="visitTitle">
+        <div class="visit__ticket">
+          <div class="visit__copy">
+            <p class="eyebrow-bracket">Local da pizzaria</p>
+            <h2 id="visitTitle" class="display display--section">Visite<br />a PL</h2>
+            <p id="storeAddressText" class="visit__address">
+              R. Tamôios, 99 - Santo Amaro, Recife - PE, 50100-420<br />
+              Aberto e pronto para receber você com o melhor sabor.
+            </p>
+            <a
+              class="ticket-btn"
+              href="https://www.google.com/maps/place/PL+Pizzas/@-8.0445681,-34.8874404,17z/data=!3m1!4b1!4m6!3m5!1s0x7ab199a88eb66c1:0xec558d5cf6343cc3!8m2!3d-8.0445681!4d-34.8848655!16s%2Fg%2F11nx2d9429?entry=ttu&g_ep=EgoyMDI2MDgxMi4wIKXMDSoASAFQAw%3D%3D"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Como chegar
+            </a>
           </div>
-          <p id="storeAddressText">
-            R. Tamôios, 99 - Santo Amaro, Recife - PE, 50100-420<br />
-            Aberto e pronto para receber você com o melhor sabor.
-          </p>
-          <a
-            class="button secondary full"
-            href="https://www.google.com/maps/place/PL+Pizzas/@-8.0445681,-34.8874404,17z/data=!3m1!4b1!4m6!3m5!1s0x7ab199a88eb66c1:0xec558d5cf6343cc3!8m2!3d-8.0445681!4d-34.8848655!16s%2Fg%2F11nx2d9429?entry=ttu&g_ep=EgoyMDI2MDgxMi4wIKXMDSoASAFQAw%3D%3D"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Ver no mapa
-          </a>
+
+          <div class="visit__qr">
+            <p class="eyebrow-bracket">Peça pelo celular</p>
+            <div class="qr-box">
+              <img id="siteQrCode" src="" alt="QR code do cardápio da PL Pizza" />
+            </div>
+            <a id="siteQrLink" class="pill pill--outline pill--full" href="/" target="_blank" rel="noreferrer">Abrir cardápio</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================== Duvidas -->
+      <section class="faq" id="duvidas" aria-labelledby="faqTitle">
+        <header class="section-head">
+          <p class="eyebrow-bracket">Dúvidas</p>
+          <h2 id="faqTitle" class="display display--section">Perguntas<br />frequentes</h2>
+        </header>
+
+        <div class="faq__list">
+          <details class="faq__item">
+            <summary>Quanto tempo demora a entrega?</summary>
+            <p>Em média de 40 a 60 minutos, conforme o movimento e a distância. Na retirada, avisamos quando estiver pronta.</p>
+          </details>
+          <details class="faq__item">
+            <summary>Quais formas de pagamento vocês aceitam?</summary>
+            <p>Pix (com QR Code na hora), cartão pelo Mercado Pago e dinheiro na entrega ou no balcão.</p>
+          </details>
+          <details class="faq__item">
+            <summary>Posso pedir pizza meio a meio?</summary>
+            <p>Sim. As pizzas aceitam até 2 sabores, além da escolha de tamanho, borda e adicionais.</p>
+          </details>
+          <details class="faq__item">
+            <summary>A entrega tem taxa?</summary>
+            <p>O valor da entrega aparece no resumo do pedido antes de você confirmar. Na retirada e no salão não há taxa.</p>
+          </details>
+          <details class="faq__item">
+            <summary>Como acompanho meu pedido?</summary>
+            <p>Ao confirmar, você recebe um código como PL-AB12CD. Com uma conta, o histórico e o status ficam em Minha conta.</p>
+          </details>
         </div>
       </section>
     </main>
 
+    <!-- ===================================================== Rodape -->
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <div class="site-footer__brand">
+          <span class="site-footer__wordmark">PL Pizza</span>
+          <p>Pizza artesanal em Santo Amaro, Recife.</p>
+        </div>
+        <nav class="site-footer__cols" aria-label="Rodapé">
+          <div>
+            <h3>Pedir</h3>
+            <a href="#cardapio">Cardápio</a>
+            <a href="#checkout">Seu pedido</a>
+            <a href="#como-funciona">Como funciona</a>
+          </div>
+          <div>
+            <h3>A pizzaria</h3>
+            <a href="#local">Endereço</a>
+            <a href="#duvidas">Dúvidas</a>
+            <a href="/admin">Área da equipe</a>
+          </div>
+        </nav>
+      </div>
+      <p class="site-footer__legal">© PL Pizza. Preços e disponibilidade sujeitos a alteração.</p>
+    </footer>
+
     <template id="menuItemTemplate">
       <article class="menu-item">
         <div class="item-image">
-          <img data-role="image" src="" alt="" />
+          <img data-role="image" src="" alt="" loading="lazy" />
         </div>
         <div class="item-body">
           <div class="item-header">
@@ -350,11 +473,13 @@
                realmente tem cadastrado (tamanhos, borda, adicionais). -->
           <div data-role="options"></div>
 
-          <button class="button primary full" type="button">Adicionar ao pedido</button>
+          <button class="ticket-btn ticket-btn--full" type="button">Adicionar ao pedido</button>
         </div>
       </article>
     </template>
 
+    <script src="/js/core.js"></script>
+    <script src="/js/art.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

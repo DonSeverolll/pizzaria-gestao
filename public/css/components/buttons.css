@@ -1,0 +1,39 @@
+/* Componente: botoes .button (.primary, .secondary, .ghost, .full).
+   Compartilhado entre vitrine e painel. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button.primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #f1463c 100%);
+  color: white;
+  box-shadow: 0 16px 32px rgba(215, 25, 32, 0.22);
+}
+
+.button.secondary {
+  background: linear-gradient(135deg, #1d1d24 0%, #3a3b42 100%);
+  color: white;
+}
+
+.button.ghost {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.button.full {
+  width: 100%;
+}

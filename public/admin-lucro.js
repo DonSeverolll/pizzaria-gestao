@@ -12,6 +12,11 @@ const exportPdfButton = document.getElementById('exportPdfButton');
 const adminMenuToggle = document.getElementById('adminMenuToggle');
 const adminSidebar = document.getElementById('adminSidebar');
 
+// Helpers compartilhados (js/core.js). O relatorio usa "R$ 1234,50"
+// (currencyPlain), como sempre usou.
+const { escapeHtml } = PL.dom;
+const { currencyPlain: formatCurrency } = PL.format;
+
 const periodLabels = {
   today: 'Hoje',
   '7d': 'Últimos 7 dias',
@@ -19,34 +24,11 @@ const periodLabels = {
   custom: 'Período personalizado',
 };
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+const token = PL.auth.requireToken();
+const apiFetch = PL.api.client({ token });
 
 let currentReport = null;
 let currentPeriod = 'today';
-
-async function apiFetch(path) {
-  const res = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
-
-  if (res.status === 401) {
-    localStorage.removeItem('pizzaria-token');
-    window.location.href = '/admin';
-    throw new Error('Sessão expirada.');
-  }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return data;
-}
-
-function formatCurrency(value) {
-  return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
-}
 
 function renderReport(report) {
   currentReport = report;
@@ -72,11 +54,11 @@ function renderReport(report) {
             .map(
               (product) => `
                 <tr>
-                  <td>${product.name}</td>
-                  <td>${product.quantity}</td>
+                  <td>${escapeHtml(product.name)}</td>
+                  <td>${escapeHtml(product.quantity)}</td>
                   <td>${formatCurrency(product.revenue)}</td>
                   <td>${product.share.toFixed(1)}%</td>
-                  <td><span class="abc-badge" data-class="${product.class}">${product.class}</span></td>
+                  <td><span class="abc-badge" data-class="${escapeHtml(product.class)}">${escapeHtml(product.class)}</span></td>
                 </tr>
               `
             )
@@ -98,7 +80,7 @@ async function loadReport(period, from, to) {
     const report = await apiFetch(`/api/reports/sales?${params.toString()}`);
     renderReport(report);
   } catch (error) {
-    productsTable.innerHTML = `<p>${error.message}</p>`;
+    productsTable.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -156,13 +138,6 @@ if (exportCsvButton) {
 if (exportPdfButton) {
   exportPdfButton.addEventListener('click', () => {
     window.print();
-  });
-}
-
-if (adminMenuToggle && adminSidebar) {
-  adminMenuToggle.addEventListener('click', () => {
-    const isOpen = adminSidebar.classList.toggle('open');
-    adminMenuToggle.setAttribute('aria-expanded', String(isOpen));
   });
 }
 

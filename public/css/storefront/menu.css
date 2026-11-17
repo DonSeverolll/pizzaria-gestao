@@ -1,0 +1,168 @@
+/* Vitrine: busca, abas de categoria, grade do cardapio, cartao de produto e opcoes
+   (tamanho, borda, adicionais). .category-tab e .checkbox-row tambem aparecem no painel. */
+
+.filters {
+  padding: 28px 0 10px;
+}
+
+.search-wrap {
+  margin-bottom: 18px;
+}
+
+.search-wrap input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.9);
+  border-radius: 16px;
+  padding: 16px 18px;
+  outline: none;
+  font-size: 1rem;
+}
+
+.search-wrap input:focus {
+  border-color: rgba(215, 25, 32, 0.38);
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.category-tab {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Usa a cor da marca em vez de var(--text): no tema escuro o texto e quase
+   branco, e um fundo branco com texto branco sumia. */
+.category-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.menu-section {
+  padding: 16px 0 40px;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.menu-item {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px rgba(35, 31, 32, 0.08);
+}
+
+.item-image {
+  min-height: 188px;
+  display: block;
+  background: linear-gradient(135deg, #fff0ea 0%, #fee9de 100%);
+}
+
+.item-image img {
+  width: 100%;
+  height: 188px;
+  object-fit: cover;
+  display: block;
+}
+
+.item-body {
+  padding: 18px 18px 20px;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.price {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+.description {
+  margin: 10px 0 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  min-height: 52px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tag {
+  background: var(--surface);
+  color: var(--primary-deep);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.option-group {
+  margin-bottom: 14px;
+}
+
+.option-group > span,
+.option-group label > span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.option-group select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-height: 42px;
+  background: var(--panel);
+  padding: 10px 12px;
+}
+
+.split-row,
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.split-row label,
+.checkbox-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}

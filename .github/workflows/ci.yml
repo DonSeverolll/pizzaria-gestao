@@ -1,0 +1,81 @@
+# Integracao continua: testes, auditoria de dependencias e busca de segredos
+# em todo push e pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes (Node da .nvmrc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias (lockfile exato, sem scripts de instalacao)
+        run: npm ci --ignore-scripts
+
+      - name: Auditoria de vulnerabilidades
+        run: npm audit --audit-level=moderate
+
+      - name: Testes
+        run: npm test
+
+  firestore:
+    name: Testes no emulador do Firestore
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # O emulador do Firestore roda em Java.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Instalar dependencias (lockfile exato, sem scripts de instalacao)
+        run: npm ci --ignore-scripts
+
+      - name: Testes (API + transacoes + Storage) no emulador
+        run: npm run test:firestore
+
+  segredos:
+    name: Busca de segredos no historico
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # .github/trufflehog-exclude.txt tira da varredura SO o teste que usava
+      # URLs de conexao ficticias (usuario/senha de mentira) num commit antigo
+      # do historico. O restante do repositorio continua sendo varrido.
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@v3.95.3
+        with:
+          extra_args: --results=verified,unknown --exclude-paths=.github/trufflehog-exclude.txt

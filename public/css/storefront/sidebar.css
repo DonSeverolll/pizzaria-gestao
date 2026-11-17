@@ -1,0 +1,162 @@
+/* Vitrine: menu lateral (login/conta do cliente), botao hamburguer e painel do cliente.
+   Atencao: algumas regras sao compartilhadas com o painel:
+   - .sidebar-header, .admin-brand (cabecalho da barra lateral do admin)
+   - .sidebar-message, .form-message (mensagens de formulario do admin)
+   - .customer-list (usado tambem em admin-config.html) */
+
+.sidebar-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(360px, 90vw);
+  height: 100vh;
+  background: rgba(23, 23, 26, 0.97);
+  color: white;
+  transform: translateX(110%);
+  transition: transform 0.25s ease;
+  z-index: 60;
+  padding: 18px 18px 26px;
+  box-shadow: -14px 0 40px rgba(0, 0, 0, 0.22);
+}
+
+.sidebar-menu.open {
+  transform: translateX(0);
+}
+
+.sidebar-header,
+.admin-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sidebar-header h3,
+.admin-brand strong {
+  margin: 0;
+}
+
+.icon-button {
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.sidebar-section {
+  margin-top: 18px;
+  padding: 18px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 18px;
+}
+
+.sidebar-section h4 {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
+}
+
+.sidebar-form {
+  display: grid;
+  gap: 12px;
+}
+
+.sidebar-form label {
+  display: grid;
+  gap: 6px;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.86rem;
+}
+
+.sidebar-form input {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  padding: 10px 12px;
+}
+
+.sidebar-message,
+.form-message {
+  margin-top: 12px;
+  color: #ffd3d6;
+  font-size: 0.88rem;
+}
+
+.sidebar-action {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  color: white;
+  font-weight: 700;
+  padding: 12px 14px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.sidebar-greeting {
+  margin-bottom: 12px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.menu-toggle {
+  border: 1px solid rgba(23, 23, 26, 0.08);
+  background: var(--toggle-bg);
+  color: var(--toggle-text);
+  border-radius: 999px;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.menu-toggle span {
+  line-height: 1;
+}
+
+.admin-panel-button {
+  background: linear-gradient(135deg, var(--primary) 0%, #ef3d35 100%);
+  color: white;
+}
+
+.customer-dashboard {
+  margin-top: 24px;
+}
+
+.customer-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.customer-panel-body {
+  display: grid;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.customer-list,
+.customer-orders {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-list .row-item,
+.customer-orders .order-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}

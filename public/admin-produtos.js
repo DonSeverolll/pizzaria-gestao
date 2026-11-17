@@ -13,36 +13,12 @@ const uploadImageButton = document.getElementById('uploadImageButton');
 const adminMenuToggle = document.getElementById('adminMenuToggle');
 const adminSidebar = document.getElementById('adminSidebar');
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
+const { currencyDot } = PL.format;
 
-async function apiFetch(path, options = {}) {
-  const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` };
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  const res = await fetch(path, { ...options, headers });
-
-  if (res.status === 401) {
-    localStorage.removeItem('pizzaria-token');
-    window.location.href = '/admin';
-    throw new Error('Sessão expirada.');
-  }
-
-  if (res.status === 204) {
-    return null;
-  }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return data;
-}
+const token = PL.auth.requireToken();
+const apiFetch = PL.api.client({ token });
 
 function updateCategoryFields() {
   const category = productCategory.value;
@@ -110,18 +86,18 @@ function renderProducts(products) {
           return `
             <article class="table-card">
               <div class="row">
-                <h3>${product.name}</h3>
+                <h3>${escapeHtml(product.name)}</h3>
                 <span class="table-status" data-status="${isActive ? 'available' : 'occupied'}">${isActive ? 'Disponível' : 'Esgotado'}</span>
               </div>
-              <div class="capacity"><strong>Categoria:</strong> ${product.category}</div>
-              <div class="capacity"><strong>Descrição:</strong> ${product.description || 'Sem descrição'}</div>
-              <div class="capacity"><strong>Valor base:</strong> R$ ${Number(product.price || 0).toFixed(2)}</div>
-              <div class="capacity"><strong>Sabores:</strong> ${product.flavors || '—'}</div>
-              <div class="capacity"><strong>Tamanhos:</strong> ${product.sizes || '—'}</div>
+              <div class="capacity"><strong>Categoria:</strong> ${escapeHtml(product.category)}</div>
+              <div class="capacity"><strong>Descrição:</strong> ${escapeHtml(product.description || 'Sem descrição')}</div>
+              <div class="capacity"><strong>Valor base:</strong> ${currencyDot(product.price)}</div>
+              <div class="capacity"><strong>Sabores:</strong> ${escapeHtml(product.flavors || '—')}</div>
+              <div class="capacity"><strong>Tamanhos:</strong> ${escapeHtml(product.sizes || '—')}</div>
               <div class="type-actions">
-                <button class="inline-button primary" data-action="edit" data-id="${product.id}" type="button">Editar</button>
-                <button class="inline-button" data-action="toggle" data-id="${product.id}" data-active="${isActive}" type="button">${isActive ? 'Marcar esgotado' : 'Marcar disponível'}</button>
-                <button class="inline-button" data-action="delete" data-id="${product.id}" type="button">Excluir</button>
+                <button class="inline-button primary" data-action="edit" data-id="${escapeHtml(product.id)}" type="button">Editar</button>
+                <button class="inline-button" data-action="toggle" data-id="${escapeHtml(product.id)}" data-active="${isActive}" type="button">${isActive ? 'Marcar esgotado' : 'Marcar disponível'}</button>
+                <button class="inline-button" data-action="delete" data-id="${escapeHtml(product.id)}" type="button">Excluir</button>
               </div>
             </article>
           `;
@@ -172,7 +148,7 @@ async function loadProducts() {
     const products = await apiFetch('/api/products');
     renderProducts(products);
   } catch (error) {
-    productsList.innerHTML = `<p>${error.message}</p>`;
+    productsList.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -262,13 +238,6 @@ if (productForm) {
     } catch (error) {
       productMessage.textContent = error.message;
     }
-  });
-}
-
-if (adminMenuToggle && adminSidebar) {
-  adminMenuToggle.addEventListener('click', () => {
-    const isOpen = adminSidebar.classList.toggle('open');
-    adminMenuToggle.setAttribute('aria-expanded', String(isOpen));
   });
 }
 
