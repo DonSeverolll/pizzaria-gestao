@@ -179,9 +179,9 @@ Também: a função na Vercel fica um pouco mais pesada no primeiro acesso
   ao lado do banco.
 
 **Roteiro**
-1. Fazer o merge do PR da base v2 e depois o do Firestore.
-2. Na Vercel, *Settings → Environment Variables*, **só no ambiente
-   Production** (prévias de PR não devem gravar no banco real):
+1. Na Vercel, *Settings → Environment Variables*, **só no ambiente
+   Production** (prévias de PR não devem gravar no banco real). Variável
+   nova só vale a partir do próximo deploy, então cadastre antes do merge:
    | Variável | Valor |
    | --- | --- |
    | `DB_PROVIDER` | `firestore` |
@@ -193,8 +193,11 @@ Também: a função na Vercel fica um pouco mais pesada no primeiro acesso
    `JWT_SECRET`, `PUBLIC_BASE_URL` e as do Mercado Pago continuam como estão.
    Para copiar a chave sem abrir o arquivo (PowerShell):
    `(Get-Content '<arquivo-da-chave>.json' -Raw | ConvertFrom-Json).private_key | Set-Clipboard`
-3. *Deployments → Redeploy* da produção (variável nova só vale a partir do
-   próximo deploy).
+2. Merge do PR do Firestore (#2) primeiro: ele entra na branch da base v2
+   (#1), sem deploy de produção.
+3. Merge do PR da base v2 (#1) na `main`: um único deploy de produção já
+   com o Firestore. (Se a `main` tiver sido publicada antes das variáveis,
+   use *Deployments → Redeploy*.)
 4. Conferir no site publicado: cardápio com os 3 produtos, acompanhamento de
    um pedido pelo código, login no painel, relatório de vendas.
 5. No painel, *Configurações*: enviar o logo de novo ou colar a URL de uma
