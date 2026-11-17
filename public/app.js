@@ -254,6 +254,9 @@ async function loadStoreSettings() {
       storeBrandName.textContent = data.companyName || 'PL Pizza';
     }
     if (storeBrandLogo && data.logoUrl) {
+      // Link quebrado (ex.: arquivo num Storage que saiu do ar) volta ao logo padrao.
+      const fallbackLogo = storeBrandLogo.getAttribute('src');
+      storeBrandLogo.addEventListener('error', () => { storeBrandLogo.src = fallbackLogo; }, { once: true });
       storeBrandLogo.src = data.logoUrl;
     }
     if (storeBrandSubtitle) {

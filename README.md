@@ -9,7 +9,9 @@ configurações da loja.
 
 - **Node.js 26 LTS** (versão fixada em `.nvmrc` e em `engines`)
 - Nenhum banco para instalar no desenvolvimento: usa o SQLite embutido no Node
-- Produção: Postgres/Supabase
+- Produção: **Cloud Firestore** (Firebase) ou Postgres/Supabase, escolhido por
+  `DB_PROVIDER` (veja [Banco de dados](#banco-de-dados))
+- Para os testes no Firestore: **Java 21** (o emulador do Firebase roda em Java)
 
 ## Rodando localmente
 
@@ -27,7 +29,10 @@ desenvolvimento) e um cliente de demonstração `cliente` / `cliente123`.
 | `npm run dev` | Servidor com recarga automática (`node --watch`) usando `.env.development` |
 | `npm start` | Servidor em modo normal (lê `.env`, se existir) |
 | `npm test` | Testes da API e do banco (`node --test`, SQLite temporário) |
-| `npm run db:migrate` | Aplica migrações pendentes no banco configurado |
+| `npm run test:firestore` | Os mesmos testes no emulador do Firestore + testes de transação e Storage |
+| `npm run emulators` | Sobe os emuladores do Firestore e do Storage para usar com `npm run dev` |
+| `npm run db:migrate` | Aplica migrações pendentes no banco SQL configurado |
+| `npm run firestore:migrar` | Copia os dados do Supabase/SQLite para o Firestore (veja abaixo) |
 | `npm run audit` | Auditoria de vulnerabilidades das dependências |
 
 ## Estrutura
@@ -131,15 +136,58 @@ router.get('/cupons', authMiddleware, requirePermission('produtos'),
 Os tokens de design (cores, fontes, espaçamentos) e a organização do CSS e
 do JavaScript compartilhado estão descritos em [docs/frontend.md](docs/frontend.md).
 
+## Banco de dados
+
+`backend/db/index.js` escolhe a implementação por `DB_PROVIDER`; as duas têm
+**as mesmas funções e o mesmo formato de retorno**, então rotas e telas não
+mudam:
+
+| `DB_PROVIDER` | Implementação | Observações |
+| --- | --- | --- |
+| `firestore` | `backend/db/firestore/` | IDs numéricos por contador, itens dentro do pedido, CRM pré-calculado, transações para pedido/pagamento/caixa/estoque. Regras em `firestore.rules` (negam acesso direto; o backend usa o Admin SDK). Imagens no Cloud Storage. |
+| `postgres` | `backend/db/repositories/` | Supabase, migrações versionadas e RLS |
+| *(vazio)* | `backend/db/repositories/` | SQLite local para desenvolvimento |
+
+Plano e decisões da troca para o Firebase: [docs/plano-migracao-firebase.md](docs/plano-migracao-firebase.md).
+
+### Migrar os dados do Supabase para o Firestore
+
+1. Crie `.env.migracao.local` (ignorado pelo git) com `FIREBASE_PROJECT_ID`,
+   `FIREBASE_STORAGE_BUCKET`, `GOOGLE_APPLICATION_CREDENTIALS` (caminho do JSON
+   da conta de serviço) e `SUPABASE_DB_URL`.
+2. `npm run firestore:migrar -- --simular` lê a origem e mostra o que seria
+   gravado, sem gravar nada.
+3. `npm run firestore:migrar` grava e confere (pedidos, clientes,
+   funcionários, produtos e faturamento iguais nos dois lados). Recusa gravar
+   num Firestore que já tenha dados, a menos que receba `--substituir`.
+
+O banco de origem só é lido. Feche a loja no painel durante a troca para não
+entrarem pedidos no Supabase depois da cópia.
+
+### Windows: emulador e pasta do usuário com espaço
+
+Se o emulador falhar com `Unable to establish loopback connection`, aponte o
+Java para uma pasta curta antes de rodar os testes:
+
+```bash
+set JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/Users/Public
+```
+
 ## Deploy (Vercel)
 
 1. Configure as variáveis de `.env.example` em *Settings → Environment
-   Variables* (no mínimo `JWT_SECRET`, `SUPABASE_DB_URL`,
-   `ADMIN_INITIAL_PASSWORD`, `PUBLIC_BASE_URL`).
-2. O Node 26 é escolhido pelo campo `engines` do `package.json`.
-3. As migrações rodam sozinhas na primeira requisição de cada versão
-   publicada. Para aplicar antes, rode `npm run db:migrate` apontando para o
-   banco de produção.
+   Variables*: no mínimo `JWT_SECRET`, `ADMIN_INITIAL_PASSWORD`,
+   `PUBLIC_BASE_URL` e o banco (`DB_PROVIDER=firestore` com `FIREBASE_*`, ou
+   `SUPABASE_DB_URL`).
+   Roteiro da troca para o Firestore: seção 9 de
+   [docs/plano-migracao-firebase.md](docs/plano-migracao-firebase.md).
+2. O Node 26 é escolhido pelo campo `engines` do `package.json`, e as
+   funções rodam em São Paulo (`regions: ["gru1"]` no `vercel.json`), perto
+   do Firestore.
+3. No Postgres, as migrações rodam sozinhas na primeira requisição de cada
+   versão publicada (ou antes, com `npm run db:migrate`). No Firestore não há
+   migrações: publique as regras com
+   `npx firebase-tools deploy --only firestore:rules,storage --project <id>`.
 
 ## Segurança
 

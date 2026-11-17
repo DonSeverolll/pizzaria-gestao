@@ -1,5 +1,6 @@
 // Testes de ponta a ponta da API: sobem o app numa porta livre, com um banco
-// SQLite temporario, e exercitam as rotas como o navegador faria.
+// temporario, e exercitam as rotas como o navegador faria. Rodam iguais no
+// SQLite (npm test) e no emulador do Firestore (npm run test:firestore).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -9,6 +10,12 @@ const path = require('node:path');
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pizzaria-api-'));
 process.env.SQLITE_PATH = path.join(tmpDir, 'test.db');
 process.env.NODE_ENV = 'test';
+
+// No Firestore, cada arquivo de teste usa um projeto proprio no emulador:
+// os arquivos rodam em paralelo sem misturar os dados.
+if (String(process.env.DB_PROVIDER).toLowerCase() === 'firestore') {
+  process.env.FIREBASE_PROJECT_ID = `demo-pizzaria-api-${process.pid}`;
+}
 
 const app = require('../server');
 const { closeDb } = require('../backend/db');

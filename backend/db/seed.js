@@ -153,4 +153,14 @@ async function seedData() {
   }
 }
 
-module.exports = { seedData, BCRYPT_COST };
+module.exports = {
+  seedData,
+  BCRYPT_COST,
+  // Reaproveitados pela camada Firestore (backend/db/firestore/seed.js).
+  initialAdminPassword,
+  MENU_ITEMS,
+  TABLES,
+  STORE_HOURS,
+  INVENTORY,
+  EXTRAS,
+};

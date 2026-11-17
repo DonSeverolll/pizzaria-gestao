@@ -11,7 +11,10 @@
     "start": "node server.js",
     "dev": "node --watch --env-file=.env.development server.js",
     "test": "node --test",
+    "test:firestore": "npx --yes firebase-tools@15.36.0 emulators:exec --only firestore,storage --project demo-pizzaria \"node scripts/run-firestore-tests.js\"",
+    "emulators": "npx --yes firebase-tools@15.36.0 emulators:start --only firestore,storage --project demo-pizzaria",
     "db:migrate": "node scripts/migrate.js",
+    "firestore:migrar": "node --env-file-if-exists=.env.migracao.local scripts/migrar-para-firestore.js",
     "audit": "npm audit --audit-level=moderate"
   },
   "keywords": [
@@ -29,6 +32,7 @@
     "bcryptjs": "^3.0.3",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.4",
+    "firebase-admin": "^14.5.1",
     "jsonwebtoken": "^9.0.3",
     "mercadopago": "^3.6.2",
     "multer": "^2.5.0",
