@@ -22,55 +22,25 @@ function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-function makeIllustration(label, accent, secondary, emoji) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420">
-      <defs>
-        <linearGradient id="g" x1="0" x2="1">
-          <stop offset="0%" stop-color="${secondary}"/>
-          <stop offset="100%" stop-color="${accent}"/>
-        </linearGradient>
-      </defs>
-      <rect width="600" height="420" rx="28" fill="url(#g)"/>
-      <circle cx="300" cy="180" r="110" fill="rgba(255,255,255,0.2)"/>
-      <text x="300" y="188" font-size="120" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
-      <rect x="44" y="300" width="512" height="62" rx="18" fill="rgba(255,255,255,0.2)"/>
-      <text x="300" y="338" font-size="26" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" fill="#fff">${label}</text>
-    </svg>
-  `;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+// Ilustracoes dos produtos: desenhadas por /js/art.js (PLArt) a partir do
+// nome e da categoria. Cada ilustracao gerada fica registrada para que
+// safeImageSrc() so aceite, alem de http(s) e caminhos do site, o que o
+// proprio app desenhou.
+const GENERATED_ART = new Map();
+const GENERATED_ART_URLS = new Set();
+
+function artFor(item) {
+  const key = `${item?.category || ''}|${item?.name || ''}`;
+  if (!GENERATED_ART.has(key)) {
+    const url = window.PLArt ? window.PLArt.forProduct(item) : '';
+    GENERATED_ART.set(key, url);
+    if (url) GENERATED_ART_URLS.add(url);
+  }
+  return GENERATED_ART.get(key);
 }
 
-const FALLBACK_IMAGES = {
-  'Calabresa': makeIllustration('Calabresa', '#d71920', '#ffe4e2', '🍕'),
-  'Frango com Catupiry': makeIllustration('Frango com Catupiry', '#f59f1a', '#fff3d9', '🍗'),
-  'Portuguesa': makeIllustration('Portuguesa', '#d71920', '#fff0e8', '🍕'),
-  'Margherita': makeIllustration('Margherita', '#a6d65a', '#edf8d9', '🍕'),
-  'Pepperoni': makeIllustration('Pepperoni', '#c53d25', '#ffe0dc', '🌶️'),
-  'Chocolate com Morango': makeIllustration('Chocolate com Morango', '#a52d62', '#fce4ef', '🍫'),
-  'Banana com Canela': makeIllustration('Banana com Canela', '#e7a84d', '#fff0d7', '🍌'),
-  'Guaraná de 1L': makeIllustration('Guaraná', '#d71920', '#ffe1df', '🥤'),
-  'Água Mineral': makeIllustration('Água', '#38a4d8', '#ddf4ff', '💧'),
-  'Pepsi 1L': makeIllustration('Pepsi', '#1d4d9a', '#dfe9ff', '🥤'),
-  'H2OH Limoneto 500ml': makeIllustration('Limoneto', '#46c297', '#e1fdf1', '🍋'),
-  'Coca Cola de 1.5L': makeIllustration('Coca Cola', '#b81d20', '#ffe2e0', '🥤'),
-  'Coca Cola zero 1,5L': makeIllustration('Coca Zero', '#2d5ea8', '#dfe8ff', '🥤'),
-  'Combo Família': makeIllustration('Combo Família', '#d71920', '#ffe9d4', '🎉'),
-  'Petit Gateau': makeIllustration('Petit Gateau', '#7b4b2f', '#f5e3d9', '🍰'),
-  Bebidas: makeIllustration('Bebidas', '#3fa1d8', '#dff6ff', '🥤'),
-  Pizzas: makeIllustration('Pizzas', '#d71920', '#ffe6df', '🍕'),
-  Promos: makeIllustration('Promo', '#e99e1f', '#fff4d6', '🎉'),
-  Sobremesas: makeIllustration('Sobremesas', '#a33a68', '#f9e2ef', '🍰'),
-  bebidas: makeIllustration('Bebidas', '#3fa1d8', '#dff6ff', '🥤'),
-  pizzas: makeIllustration('Pizzas', '#d71920', '#ffe6df', '🍕'),
-};
-
-// Imagens aceitas em src montado como HTML: http(s), caminho do proprio site
-// ou uma das ilustracoes geradas acima. Qualquer outra coisa vira imagem vazia.
-const FALLBACK_IMAGE_URLS = new Set(Object.values(FALLBACK_IMAGES));
-
 function safeImageSrc(url) {
-  if (FALLBACK_IMAGE_URLS.has(url)) return url;
+  if (GENERATED_ART_URLS.has(url)) return url;
   return PL.dom.safeUrl(url);
 }
 
@@ -320,20 +290,11 @@ function toCurrency(value) {
 }
 
 function resolveItemImage(item) {
-  // So http(s) de verdade; o resto cai na ilustracao padrao.
+  // So http(s) de verdade; o resto ganha a ilustracao do PLArt.
   if (typeof item.image === 'string' && /^https?:\/\//.test(item.image)) {
     return item.image;
   }
-
-  if (item.name && FALLBACK_IMAGES[item.name]) {
-    return FALLBACK_IMAGES[item.name];
-  }
-
-  if (item.category && FALLBACK_IMAGES[item.category]) {
-    return FALLBACK_IMAGES[item.category];
-  }
-
-  return FALLBACK_IMAGES.pizzas;
+  return artFor(item);
 }
 
 function buildCartKey(entry) {
@@ -529,18 +490,34 @@ async function fetchMenu(category = null) {
   return response.json();
 }
 
+// Ordem das abas: pizzas primeiro, depois bebidas, promocoes e sobremesas,
+// mesmo quando o nome cadastrado e mais longo ("Pizzas Salgadas e Doces").
+function orderedCategories(items) {
+  const rank = (category) => {
+    const normalized = normalizeCategory(category);
+    const index = categoryOrder.findIndex((entry) => normalized.startsWith(normalizeCategory(entry)));
+    return index === -1 ? categoryOrder.length : index;
+  };
+  return [...new Set(items.map((item) => item.category))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 function renderCategories(items) {
-  const categories = [...new Set(items.map((item) => item.category))];
-  const available = categoryOrder.filter((category) => categories.includes(category));
-  const others = categories.filter((category) => !categoryOrder.includes(category));
-  const allCategories = [...available, ...others];
+  const allCategories = orderedCategories(items);
 
   categoryTabs.innerHTML = '';
   allCategories.forEach((category) => {
     const button = document.createElement('button');
+    const isActive = state.category === category;
     button.type = 'button';
-    button.className = `category-tab ${state.category === category ? 'active' : ''}`;
+    button.className = `category-tab ${isActive ? 'active' : ''}`;
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', String(isActive));
     button.textContent = category;
+    // Contador em sobrescrito ao lado do nome da categoria.
+    const count = document.createElement('sup');
+    count.className = 'category-tab__count';
+    count.textContent = String(items.filter((item) => item.category === category).length);
+    button.appendChild(count);
     button.addEventListener('click', () => {
       state.category = category;
       renderMenu();
@@ -684,7 +661,7 @@ async function initMenu() {
     state.extras = extras;
 
     // A categoria padrão pode não existir no cardápio real; cai para a primeira disponível.
-    const availableCategories = [...new Set(items.map((item) => item.category))];
+    const availableCategories = orderedCategories(items);
     if (items.length > 0 && !availableCategories.includes(state.category)) {
       state.category = availableCategories[0];
     }
@@ -1098,6 +1075,10 @@ if (accountButton) {
 }
 
 sidebarClose.addEventListener('click', closeSidebar);
+// Links de navegacao do menu lateral (celular) fecham o menu ao navegar.
+document.querySelectorAll('[data-sidebar-link]').forEach((link) => {
+  link.addEventListener('click', closeSidebar);
+});
 sideLoginForm.addEventListener('submit', (event) => {
   event.preventDefault();
   loginFromSidebar();

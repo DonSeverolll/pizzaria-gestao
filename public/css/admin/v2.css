@@ -1,0 +1,600 @@
+/* =============================================================================
+   PAINEL v2 - nova identidade do painel administrativo
+   -----------------------------------------------------------------------------
+   Camada final sobre o CSS antigo do painel (vale so em <body class="admin-v2">).
+   Mesma linguagem da vitrine: barra lateral vinho, titulos condensados,
+   rotulos entre colchetes, botoes em pilula e cartoes com cantos generosos.
+   No celular/tablet a barra lateral vira gaveta e o conteudo ocupa a tela.
+   ============================================================================= */
+
+body.admin-v2 {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.admin-v2 .admin-page {
+  padding: 0;
+  background: var(--bg);
+}
+
+.admin-v2 :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(227, 38, 46, 0.4);
+}
+
+/* -------------------------------------------------------- Barra lateral */
+
+.admin-v2 .admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 272px;
+  padding: 20px 14px 18px;
+  overflow-y: auto;
+  border-right: 0;
+  background: var(--pl-wine);
+  color: #ffeee8;
+  box-shadow: 18px 0 40px -28px rgba(36, 5, 11, 0.9);
+}
+
+[data-theme='dark'] .admin-v2 .admin-sidebar {
+  background: #12040a;
+  border-right: 1px solid rgba(255, 238, 232, 0.06);
+}
+
+.admin-v2 .admin-brand {
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 4px 8px 18px;
+  border-bottom: 1px solid rgba(255, 238, 232, 0.1);
+}
+
+.admin-v2 .admin-brand .brand-logo-admin {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #fff;
+}
+
+.admin-v2 .admin-brand strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.admin-v2 .admin-brand small {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(246, 194, 68, 0.16);
+  color: var(--pl-cheese);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-v2 .admin-nav {
+  gap: 3px;
+  flex: 1;
+}
+
+.admin-v2 .admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 12px;
+  color: rgba(255, 238, 232, 0.74);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.admin-v2 .admin-nav-icon {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.admin-v2 .admin-nav-item:hover {
+  background: rgba(255, 238, 232, 0.07);
+  border-color: transparent;
+  color: #fff;
+}
+
+.admin-v2 .admin-nav-item.active {
+  background: var(--pl-red);
+  color: #fff;
+  box-shadow: 0 12px 22px -14px rgba(227, 38, 46, 0.9);
+}
+
+.admin-v2 .admin-nav-item.active .admin-nav-icon {
+  opacity: 1;
+}
+
+.admin-v2 .admin-sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 14px 8px 0;
+  border-top: 1px solid rgba(255, 238, 232, 0.1);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 238, 232, 0.6);
+}
+
+.admin-v2 .admin-sidebar .theme-switch__track {
+  background: linear-gradient(180deg, #2a070f 0%, #4a1220 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Botao do menu (gaveta no celular). */
+.admin-v2 .admin-menu-toggle {
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--pl-red);
+  color: #fff;
+  font-size: 1.5rem;
+  box-shadow: 0 14px 26px -16px rgba(227, 38, 46, 0.95);
+}
+
+/* ------------------------------------------------------------- Conteudo */
+
+.admin-v2 .admin-content {
+  margin-left: 272px;
+  max-width: 1240px;
+  padding: 34px 40px 72px;
+}
+
+.admin-v2 .admin-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.admin-v2 .admin-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 3.6vw, 3.1rem);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.admin-v2 .admin-card h2,
+.admin-v2 .admin-card .admin-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.admin-v2 .admin-card .admin-header {
+  margin-bottom: 18px;
+}
+
+/* "[ Rotulo ]" vermelho, como na vitrine. */
+.admin-v2 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  margin-bottom: 10px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.admin-v2 .eyebrow::before {
+  content: '[';
+  color: var(--pl-red);
+}
+
+.admin-v2 .eyebrow::after {
+  content: ']';
+  color: var(--pl-red);
+}
+
+.admin-v2 .admin-card {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--panel);
+  box-shadow: 0 1px 0 rgba(59, 10, 20, 0.04), 0 22px 44px -34px rgba(59, 10, 20, 0.4);
+}
+
+.admin-v2 .admin-card + .admin-card {
+  margin-top: 22px;
+}
+
+.admin-v2 .status-pill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(29, 157, 92, 0.12);
+  color: #1d9d5c;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------- Cartoes resumo */
+
+.admin-v2 .summary-grid {
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.admin-v2 .summary-card {
+  position: relative;
+  overflow: hidden;
+  padding: 20px 20px 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--panel);
+  box-shadow: none;
+}
+
+.admin-v2 .summary-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--pl-red);
+}
+
+.admin-v2 .summary-card:nth-child(2)::before { background: var(--pl-cheese); }
+.admin-v2 .summary-card:nth-child(3)::before { background: var(--pl-basil); }
+.admin-v2 .summary-card:nth-child(4)::before { background: var(--pl-wine-soft); }
+
+.admin-v2 .summary-card .label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.admin-v2 .summary-card strong {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--text);
+}
+
+/* --------------------------------------------- Grades de cartoes (mesas...) */
+
+.admin-v2 .tables-grid {
+  gap: 16px;
+}
+
+.admin-v2 .table-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: none;
+  transition:
+    transform 0.25s var(--ease-out),
+    border-color 0.2s ease;
+}
+
+.admin-v2 .table-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(227, 38, 46, 0.35);
+}
+
+.admin-v2 .table-card .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-v2 .type-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-v2 .table-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.admin-v2 .table-status {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------- Botoes */
+
+.admin-v2 .button {
+  min-height: 46px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    transform 0.2s var(--ease-spring),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.admin-v2 .button:hover {
+  transform: translateY(-1px);
+}
+
+.admin-v2 .button.primary {
+  border: 2px solid var(--pl-red);
+  background: var(--pl-red);
+  color: #fff;
+  box-shadow: 0 14px 26px -16px rgba(227, 38, 46, 0.95);
+}
+
+.admin-v2 .button.primary:hover {
+  border-color: var(--pl-red-deep);
+  background: var(--pl-red-deep);
+}
+
+.admin-v2 .button.ghost,
+.admin-v2 .button.secondary {
+  border: 1.5px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.admin-v2 .button.ghost:hover,
+.admin-v2 .button.secondary:hover {
+  border-color: var(--pl-red);
+  color: var(--pl-red);
+}
+
+.admin-v2 .inline-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.admin-v2 .inline-button:hover {
+  border-color: var(--pl-red);
+  color: var(--pl-red);
+}
+
+.admin-v2 .inline-button.primary {
+  border-color: var(--pl-red);
+  background: var(--pl-red);
+  color: #fff;
+}
+
+.admin-v2 .inline-button.primary:hover {
+  background: var(--pl-red-deep);
+  color: #fff;
+}
+
+/* ----------------------------------------------------------- Formularios */
+
+.admin-v2 input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.admin-v2 select,
+.admin-v2 textarea {
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.admin-v2 input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+.admin-v2 select:focus,
+.admin-v2 textarea:focus {
+  outline: none;
+  border-color: var(--pl-red);
+  box-shadow: 0 0 0 3px rgba(227, 38, 46, 0.2);
+}
+
+.admin-v2 input[type='checkbox'],
+.admin-v2 input[type='radio'] {
+  accent-color: var(--pl-red);
+}
+
+.admin-v2 .form-group label,
+.admin-v2 .field-group label,
+.admin-v2 .field-group > span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ Login */
+
+.admin-v2 .login-panel {
+  max-width: 440px;
+  margin: 12vh auto 0;
+  padding: 34px;
+  border-radius: 30px;
+}
+
+.admin-v2 .login-panel h2 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 400;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--pl-red);
+}
+
+.admin-v2 .login-panel .brand-logo-admin {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+}
+
+/* -------------------------------------------------------- Tabelas, listas */
+
+.admin-v2 .data-table th {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.admin-v2 .data-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-v2 .data-table tbody tr:hover {
+  background: var(--surface);
+}
+
+/* PDV */
+.admin-v2 .pdv-product {
+  border-radius: 16px;
+  transition:
+    transform 0.2s var(--ease-out),
+    border-color 0.2s ease;
+}
+
+.admin-v2 .pdv-product:hover {
+  transform: translateY(-2px);
+}
+
+.admin-v2 .category-tab {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-v2 .category-tab.active {
+  background: var(--pl-red);
+  border-color: var(--pl-red);
+  color: #fff;
+}
+
+/* ============================================================ Responsivo */
+
+/* Ate 980px a barra lateral vira gaveta sobre o conteudo. */
+@media (max-width: 980px) {
+  .admin-v2 .admin-sidebar {
+    z-index: 40;
+    width: min(300px, 86vw);
+    box-shadow: 30px 0 60px -20px rgba(36, 5, 11, 0.7);
+  }
+
+  .admin-v2 .admin-content {
+    margin-left: 0;
+    padding: 84px 20px 60px;
+  }
+
+  /* O HTML nasce com a classe "open" (desktop). Ate o admin-shell.js marcar
+     data-ready, a gaveta fica fechada para nao piscar sobre o conteudo. */
+  .admin-v2 .admin-sidebar:not([data-ready]) {
+    transform: translateX(-105%);
+  }
+}
+
+@media (min-width: 981px) {
+  /* No desktop a barra fica sempre visivel e o botao de menu some. */
+  .admin-v2 .admin-sidebar:not(.open) {
+    transform: none;
+  }
+
+  .admin-v2 .admin-menu-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-v2 .admin-card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .admin-v2 .admin-header h1 {
+    font-size: 2.1rem;
+  }
+
+  .admin-v2 .summary-card strong {
+    font-size: 2.1rem;
+  }
+}

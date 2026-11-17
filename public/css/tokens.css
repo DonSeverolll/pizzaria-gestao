@@ -46,19 +46,21 @@
    1. Tokens existentes (movidos sem alteracao do styles.css original)
    ----------------------------------------------------------------------------- */
 
+/* Valores reajustados na identidade v2 (creme, vinho e vermelho-tomate):
+   o painel herda a paleta nova sem precisar reescrever suas regras. */
 :root {
-  --bg: #f9f5f2;
+  --bg: #fff6ee;
   --panel: #ffffff;
-  --surface: #fff7f1;
-  --primary: #d71920;
-  --primary-deep: #a81016;
-  --brand-red: #c70a1a;
-  --brand-dark: #1f1d1d;
-  --red-soft: #ffe4e2;
-  --accent: #f5b63d;
-  --text: #17171a;
-  --muted: #5c5d65;
-  --line: #f0e4dc;
+  --surface: #fff1e6;
+  --primary: #e3262e;
+  --primary-deep: #b5121b;
+  --brand-red: #e3262e;
+  --brand-dark: #2a0a10;
+  --red-soft: #fde2dc;
+  --accent: #f6c244;
+  --text: #1c0f12;
+  --muted: #6e5a5d;
+  --line: #f1ded3;
   --success: #1d9d5c;
   --warning: #d98b1d;
   --danger: #cf2f3d;
@@ -72,19 +74,19 @@
 
 /* O vermelho da marca e mantido nos dois temas; o que muda sao as superficies. */
 :root[data-theme='dark'] {
-  --bg: #141316;
-  --panel: #1c1b20;
-  --surface: #232128;
-  --red-soft: #3a1f23;
-  --text: #f4f2ef;
-  --muted: #a7a2ae;
-  --line: #322f38;
+  --bg: #170609;
+  --panel: #210a0f;
+  --surface: #2b0e15;
+  --red-soft: #4a1520;
+  --text: #ffeee8;
+  --muted: #c4a2a6;
+  --line: #3d1820;
   --shadow: rgba(0, 0, 0, 0.45);
-  --bg-top: #16151a;
-  --bg-bottom: #0f0e12;
-  --sidebar-bg: rgba(28, 27, 32, 0.97);
-  --toggle-bg: #2a2830;
-  --toggle-text: #f4f2ef;
+  --bg-top: #1c070c;
+  --bg-bottom: #120407;
+  --sidebar-bg: rgba(33, 10, 15, 0.97);
+  --toggle-bg: #2b0e15;
+  --toggle-text: #ffeee8;
 }
 
 
@@ -168,4 +170,73 @@
   --duration-base: 0.2s;
   --duration-slow: 0.25s;   /* abrir/fechar barras laterais */
   --easing-standard: ease;
+}
+
+
+/* -----------------------------------------------------------------------------
+   3. Identidade v2 (vitrine "poster" + painel)
+      Titulos altos e condensados, secoes vinho, paineis rosados e barra de
+      navegacao vermelha. A paleta --pl-* e fixa; os tokens --site-* mudam
+      com o tema e sao os que as regras devem usar.
+   ----------------------------------------------------------------------------- */
+
+:root {
+  --font-display: 'Anton', 'Bebas Neue', 'Oswald', Impact, 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Paleta da marca */
+  --pl-red: #e3262e;
+  --pl-red-deep: #b5121b;
+  --pl-red-hot: #ff4248;
+  --pl-wine: #3b0a14;
+  --pl-wine-deep: #24050b;
+  --pl-wine-soft: #561526;
+  --pl-blush: #fce3d6;
+  --pl-blush-deep: #f6c9b7;
+  --pl-cream: #fff6ee;
+  --pl-basil: #1f6b45;
+  --pl-basil-soft: #d8f0df;
+  --pl-cheese: #f6c244;
+  --pl-ink: #1c0f12;
+
+  /* Semanticos da vitrine - tema claro */
+  --site-bg: var(--pl-cream);
+  --site-surface: #ffffff;
+  --site-surface-2: var(--pl-blush);
+  --site-text: var(--pl-ink);
+  --site-muted: #6e5a5d;
+  --site-line: rgba(59, 10, 20, 0.12);
+  --site-heading: var(--pl-red);
+  --site-hero-bg: var(--pl-blush);
+  --site-hero-ink: var(--pl-wine);
+  --site-wine: var(--pl-wine);
+  --site-on-wine: #ffeee8;
+  --site-basil-bg: var(--pl-basil-soft);
+  --site-basil-ink: #10351f;
+  --site-card-shadow: 0 1px 0 rgba(59, 10, 20, 0.06), 0 22px 44px -28px rgba(59, 10, 20, 0.45);
+  --site-focus: 0 0 0 3px rgba(227, 38, 46, 0.4);
+
+  /* Formas e movimento */
+  --radius-card: 28px;
+  --radius-blob: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  --site-max: 1240px;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-theme: 0.45s;
+}
+
+:root[data-theme='dark'] {
+  --site-bg: #170609;
+  --site-surface: #24080e;
+  --site-surface-2: #33101a;
+  --site-text: #ffeee8;
+  --site-muted: #c9a7aa;
+  --site-line: rgba(255, 238, 232, 0.12);
+  --site-heading: var(--pl-red-hot);
+  --site-hero-bg: var(--pl-wine);
+  --site-hero-ink: #ffeee8;
+  --site-wine: #24050b;
+  --site-basil-bg: #0f2a1c;
+  --site-basil-ink: #d8f0df;
+  --site-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 26px 52px -30px rgba(0, 0, 0, 0.85);
 }

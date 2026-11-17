@@ -11,17 +11,48 @@ public/
 ├── admin*.html           telas do painel
 ├── admin-*.js, admin.js  lógica de cada tela do painel
 ├── admin-shell.js        barra lateral do painel (menu único, filtrado por perfil)
-├── theme.js              tema claro/escuro (vitrine e painel)
+├── theme.js              tema claro/escuro + chave animada (sol/lua em pixel)
 ├── js/core.js            núcleo compartilhado: window.PL (api, auth, format, dom)
+├── js/art.js             ilustrações SVG da marca: window.PLArt
 ├── styles.css            ÍNDICE: só @import dos arquivos de css/
 └── css/
     ├── tokens.css        cores, escalas e breakpoints (fonte única do design)
     ├── base/             reset, elementos globais, utilitários
-    ├── components/       peças compartilhadas (botões, modal, botão de tema)
-    ├── storefront/       vitrine
-    ├── admin/            painel
+    ├── components/       peças compartilhadas (botões, modal, chave de tema)
+    ├── storefront/       vitrine antiga (classes ainda usadas pelo painel)
+    ├── site/             VITRINE v2 (só vale em <body class="site">)
+    ├── admin/            painel (+ admin/v2.css: identidade v2)
     └── print.css         impressão
 ```
+
+---
+
+## 0. Identidade v2 (redesign)
+
+Inspirada em sites "pôster" de comida: títulos altos e condensados (**Anton**),
+seções vinho, painéis rosados, barra de navegação vermelha flutuante, rótulos
+entre colchetes (`[ Cardápio ]`) e botões tipo ingresso (`› Ver cardápio ‹`).
+
+- **Camada por cima do antigo:** `css/site/*.css` e `css/admin/v2.css` são os
+  últimos imports de `styles.css` e valem só em `body.site` (vitrine) e
+  `body.admin-v2` (painel). O CSS antigo continua carregado porque o painel
+  usa várias classes dele.
+- **Tokens novos:** paleta `--pl-*` (fixa) e semânticos `--site-*` (mudam com
+  o tema) na seção 3 de `tokens.css`. Fontes: `--font-display` e `--font-body`.
+- **Chave de tema:** qualquer `<button class="theme-switch" data-theme-toggle>`
+  vira a chave animada (`theme.js` gera o miolo). No painel, o
+  `admin-shell.js` já coloca uma na barra lateral.
+- **Ilustrações:** sem fotos no cardápio, `PLArt.forProduct(produto)` desenha
+  cada sabor (cobertura própria) e cada bebida em SVG. Para peças soltas use
+  `<img data-art="decor:basil">` (slice, tomato, basil, chili, mushroom) ou
+  `<img data-art="pizza:margherita">`. Foto `https://` cadastrada no produto
+  tem prioridade sobre a ilustração.
+- **Seções da vitrine:** hero pôster, faixa corrida, "como quer receber",
+  cardápio (abas com contador), comanda (carrinho em papel serrilhado), como
+  funciona, visite (ingresso picotado), dúvidas e rodapé.
+- **Cuidado com acentos na Anton:** o acento de maiúsculas (Ê, Á) é alto e
+  encosta na linha de cima em títulos de duas linhas.
+- **Movimento:** animações respeitam `prefers-reduced-motion`.
 
 ---
 

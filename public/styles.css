@@ -37,3 +37,15 @@
 @import url('css/admin/estoque.css');          /* painel: grade de estoque/horarios */
 @import url('css/base/utilities.css');         /* utilitarios (carregados quase no fim) */
 @import url('css/admin/responsive.css');       /* painel: responsivo */
+
+/* ----- Identidade v2 (redesign). Carregada por ultimo: sobrescreve o visual
+   antigo sem mexer nos arquivos acima. A vitrine nova vale so dentro de
+   <body class="site">; o painel novo, dentro de <body class="admin-v2">. */
+@import url('css/components/theme-switch.css');/* chave de tema com sol/lua em pixel */
+@import url('css/site/base.css');              /* vitrine v2: tipografia, botoes, campos */
+@import url('css/site/header.css');            /* vitrine v2: barra flutuante, menu lateral, modal */
+@import url('css/site/hero.css');              /* vitrine v2: hero poster, faixa, como receber */
+@import url('css/site/menu.css');              /* vitrine v2: cardapio */
+@import url('css/site/checkout.css');          /* vitrine v2: comanda, dados, Pix */
+@import url('css/site/sections.css');          /* vitrine v2: como funciona, visite, duvidas, rodape */
+@import url('css/admin/v2.css');               /* painel v2: nova identidade do painel */
