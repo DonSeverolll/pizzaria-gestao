@@ -35,6 +35,35 @@ test('createDb aplica todas as migracoes e registra em schema_migrations', async
   assert.deepEqual(await db.migrate(), []);
 });
 
+test('checksum: migracao editada depois de aplicada gera aviso e checksum ausente e preenchido', async () => {
+  await db.createDb();
+  const rows = await db.all('SELECT version, checksum FROM schema_migrations');
+  assert.ok(rows.every((row) => /^[0-9a-f]{16}$/.test(row.checksum)), 'toda migracao aplicada guarda checksum');
+
+  await db.run("UPDATE schema_migrations SET checksum = 'adulterado000000' WHERE version = '001'");
+  const warnings = [];
+  assert.deepEqual(await db.migrate({ warn: (message) => warnings.push(message) }), []);
+  assert.ok(warnings.some((message) => message.includes('001_esquema_inicial')), 'avisa sobre a migracao alterada');
+
+  await db.run('UPDATE schema_migrations SET checksum = NULL WHERE version = ?', ['001']);
+  await db.migrate({ warn: () => {} });
+  const filled = await db.get('SELECT checksum FROM schema_migrations WHERE version = ?', ['001']);
+  assert.match(filled.checksum, /^[0-9a-f]{16}$/);
+});
+
+test('modo sessao: so a porta 6543 do pooler do Supabase vira 5432', () => {
+  const { sessionModeUrl } = require('../backend/db/connection');
+  assert.equal(
+    sessionModeUrl('postgresql://u:p@aws-0-sa-east-1.pooler.supabase.com:6543/postgres'),
+    'postgresql://u:p@aws-0-sa-east-1.pooler.supabase.com:5432/postgres'
+  );
+  // Conexao direta e outros hosts nao mudam, nem quando a senha contem ":6543".
+  const direct = 'postgresql://u:p@db.abc.supabase.co:6543/postgres';
+  assert.equal(sessionModeUrl(direct), direct);
+  const trickyPassword = 'postgresql://u:x.pooler.supabase.com:6543@localhost:5432/postgres';
+  assert.equal(sessionModeUrl(trickyPassword), trickyPassword);
+});
+
 test('esquema tem as tabelas e colunas usadas pelo app', async () => {
   await db.createDb();
   const tables = (await db.all("SELECT name FROM sqlite_master WHERE type = 'table'")).map((row) => row.name);

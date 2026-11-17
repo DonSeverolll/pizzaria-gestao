@@ -71,7 +71,7 @@ scripts/migrate.js         CLI do `npm run db:migrate`
 
 ### Nova tabela ou coluna
 
-Crie `backend/db/migrations/004_minha_mudanca.js`:
+Crie `backend/db/migrations/005_minha_mudanca.js` (próximo número livre):
 
 ```js
 async function up(ctx) {
@@ -89,8 +89,22 @@ module.exports = { up };
 
 A migração roda uma única vez por banco, dentro de uma transação, no próximo
 boot ou com `npm run db:migrate`. As aplicadas ficam em `schema_migrations`.
-Nunca edite uma migração já publicada: crie outra. `ctx.dialect` diz se é
-`sqlite` ou `postgres` quando o SQL precisar ser diferente.
+`ctx.dialect` diz se é `sqlite` ou `postgres` quando o SQL precisar ser
+diferente.
+
+Regras que o executor confere sozinho:
+
+- **Nunca edite uma migração já publicada: crie outra.** Cada migração
+  aplicada guarda um checksum do arquivo, e o boot e o `npm run db:migrate`
+  avisam quando o conteúdo mudou (a mudança não roda).
+- **Tabela nova no Postgres precisa de RLS** (`ALTER TABLE ... ENABLE ROW
+  LEVEL SECURITY` na própria migração). O executor avisa quando encontra
+  tabela sem RLS, e desde a 004 tabela nova já nasce sem acesso pela API
+  pública do Supabase.
+- **Várias instâncias da Vercel ao mesmo tempo:** cada migração roda com uma
+  trava de transação no Postgres (`pg_advisory_xact_lock`), segura também
+  atrás do pooler do Supabase em modo transação (porta 6543). O
+  `npm run db:migrate` usa o modo sessão (porta 5432) automaticamente.
 
 ### Nova consulta
 

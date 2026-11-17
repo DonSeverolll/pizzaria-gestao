@@ -2,9 +2,15 @@
 //
 // Cada arquivo em backend/db/migrations/ se chama NNN_descricao.js e exporta
 // `up(ctx)`. As migracoes rodam em ordem, uma vez so por banco, cada uma
-// dentro de uma transacao; as aplicadas ficam registradas em schema_migrations.
-// No Postgres uma trava (advisory lock) impede que duas instancias da Vercel
-// migrem ao mesmo tempo.
+// dentro de uma transacao; as aplicadas ficam registradas em schema_migrations
+// junto com um checksum do arquivo.
+//
+// Concorrencia no Postgres: cada transacao pega uma trava de TRANSACAO
+// (pg_advisory_xact_lock), que e liberada sozinha no COMMIT/ROLLBACK. A trava
+// de SESSAO (pg_advisory_lock) nao serve aqui: atras do pooler do Supabase em
+// modo transacao (porta 6543), comandos fora de uma transacao podem cair em
+// conexoes diferentes do servidor, e a trava ficaria presa numa delas,
+// congelando o proximo deploy.
 //
 // O `ctx` recebido por `up` oferece:
 //   ctx.dialect               'sqlite' | 'postgres'
@@ -14,6 +20,7 @@
 //   ctx.hasTable(nome)        boolean
 //   ctx.hasColumn(tab, col)   boolean
 //   ctx.addColumn(tab, col, definicao)   idempotente
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -23,6 +30,13 @@ const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 const MIGRATION_FILE = /^(\d{3,})_[a-z0-9_-]+\.js$/i;
 // Numero arbitrario e fixo que identifica a trava das migracoes deste app.
 const ADVISORY_LOCK_ID = 7419021;
+
+// Checksum do arquivo com quebras de linha normalizadas: o mesmo arquivo com
+// CRLF (Windows) e LF (Linux/CI) precisa dar o mesmo valor.
+function checksumOf(file) {
+  const content = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+  return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16);
+}
 
 function loadMigrations() {
   const files = fs.readdirSync(MIGRATIONS_DIR).filter((file) => MIGRATION_FILE.test(file)).sort();
@@ -35,11 +49,12 @@ function loadMigrations() {
     }
     seen.add(version);
 
-    const migration = require(path.join(MIGRATIONS_DIR, file));
+    const fullPath = path.join(MIGRATIONS_DIR, file);
+    const migration = require(fullPath);
     if (typeof migration.up !== 'function') {
       throw new Error(`A migracao ${file} precisa exportar up(ctx).`);
     }
-    return { version, name: file.replace(/\.js$/, ''), up: migration.up };
+    return { version, name: file.replace(/\.js$/, ''), checksum: checksumOf(fullPath), up: migration.up };
   });
 }
 
@@ -86,57 +101,121 @@ function createContext(executor) {
   };
 }
 
-async function applyPending(executor, migrations, log) {
-  await executor.exec(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      version TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+// Executa `fn` numa transacao; no Postgres, segurando a trava das migracoes.
+async function inLockedTransaction(executor, fn) {
+  await executor.exec('BEGIN');
+  try {
+    if (executor.dialect === 'postgres') {
+      await executor.exec(`SELECT pg_advisory_xact_lock(${ADVISORY_LOCK_ID})`);
+    }
+    const result = await fn();
+    await executor.exec('COMMIT');
+    return result;
+  } catch (error) {
+    await executor.exec('ROLLBACK').catch(() => {});
+    throw error;
+  }
+}
 
-  const applied = new Set((await executor.all('SELECT version FROM schema_migrations')).map((row) => row.version));
-  const pending = migrations.filter((migration) => !applied.has(migration.version));
+async function ensureMigrationsTable(executor) {
+  await inLockedTransaction(executor, async () => {
+    await executor.exec(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        checksum TEXT,
+        applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    // Bancos migrados antes do checksum existir.
+    await createContext(executor).addColumn('schema_migrations', 'checksum', 'TEXT');
+  });
+}
+
+// Avisa (sem falhar) quando uma migracao ja aplicada foi editada depois.
+async function verifyChecksums(executor, migrations, applied, warn) {
+  for (const migration of migrations) {
+    if (!applied.has(migration.version)) continue;
+    const recorded = applied.get(migration.version);
+    if (!recorded) {
+      await executor.run('UPDATE schema_migrations SET checksum = ? WHERE version = ?', [migration.checksum, migration.version]);
+    } else if (recorded !== migration.checksum) {
+      warn(
+        `A migracao ${migration.name} mudou depois de aplicada; a mudanca NAO foi executada neste banco. ` +
+          'Desfaca a edicao e crie uma migracao nova.'
+      );
+    }
+  }
+}
+
+// No Supabase, tabela sem RLS fica exposta pela API publica (chave anon).
+async function tablesWithoutRls(executor) {
+  if (executor.dialect !== 'postgres') {
+    return [];
+  }
+  const rows = await executor.all(
+    `SELECT c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND NOT c.relrowsecurity
+      ORDER BY 1`
+  );
+  return rows.map((row) => row.name);
+}
+
+async function applyPending(executor, migrations, { log, warn }) {
+  await ensureMigrationsTable(executor);
+
+  const appliedRows = await executor.all('SELECT version, checksum FROM schema_migrations');
+  const applied = new Map(appliedRows.map((row) => [row.version, row.checksum]));
+  await verifyChecksums(executor, migrations, applied, warn);
+
   const ctx = createContext(executor);
+  const ran = [];
 
-  for (const migration of pending) {
-    await executor.exec('BEGIN');
-    try {
+  for (const migration of migrations.filter((item) => !applied.has(item.version))) {
+    const executed = await inLockedTransaction(executor, async () => {
+      // Outra instancia pode ter aplicado enquanto esperavamos a trava.
+      const already = await executor.get('SELECT version FROM schema_migrations WHERE version = ?', [migration.version]);
+      if (already) {
+        return false;
+      }
+
       await migration.up(ctx);
-      await executor.run('INSERT INTO schema_migrations (version, name) VALUES (?, ?) RETURNING version', [
+      await executor.run('INSERT INTO schema_migrations (version, name, checksum) VALUES (?, ?, ?) RETURNING version', [
         migration.version,
         migration.name,
+        migration.checksum,
       ]);
-      await executor.exec('COMMIT');
-      log(`Migracao aplicada: ${migration.name}`);
-    } catch (error) {
-      await executor.exec('ROLLBACK').catch(() => {});
+      return true;
+    }).catch((error) => {
       error.message = `Falha na migracao ${migration.name}: ${error.message}`;
       throw error;
+    });
+
+    if (executed) {
+      ran.push(migration.name);
+      log(`Migracao aplicada: ${migration.name}`);
     }
   }
 
-  return pending.map((migration) => migration.name);
+  const unprotected = await tablesWithoutRls(executor);
+  if (unprotected.length) {
+    warn(
+      `${unprotected.length} tabela(s) sem Row Level Security: ${unprotected.join(', ')}. ` +
+        'Ligue com ALTER TABLE ... ENABLE ROW LEVEL SECURITY numa nova migracao.'
+    );
+  }
+
+  return ran;
 }
 
-async function migrate({ log = () => {} } = {}) {
+async function migrate({ log = () => {}, warn = (message) => console.warn(`[db] ${message}`) } = {}) {
   const migrations = loadMigrations();
-
-  return withExclusiveExecutor(async (executor) => {
-    if (executor.dialect !== 'postgres') {
-      return applyPending(executor, migrations, log);
-    }
-
-    await executor.exec(`SELECT pg_advisory_lock(${ADVISORY_LOCK_ID})`);
-    try {
-      return await applyPending(executor, migrations, log);
-    } finally {
-      await executor.exec(`SELECT pg_advisory_unlock(${ADVISORY_LOCK_ID})`).catch(() => {});
-    }
-  });
+  return withExclusiveExecutor((executor) => applyPending(executor, migrations, { log, warn }));
 }
 
 module.exports = {
   migrate,
   loadMigrations,
+  tablesWithoutRls,
+  ADVISORY_LOCK_ID,
 };

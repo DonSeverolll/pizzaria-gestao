@@ -347,6 +347,7 @@ test('seguranca: cabecalhos e rotas desconhecidas', async () => {
   assert.equal(headers.get('x-content-type-options'), 'nosniff');
   assert.equal(headers.get('x-powered-by'), null);
   assert.equal(headers.get('access-control-allow-origin'), null, 'CORS aberto foi removido');
+  assert.equal(headers.get('cache-control'), 'no-store', 'API nunca vai para cache');
 
   const missing = await api('GET', '/api/nao-existe');
   assert.equal(missing.status, 404);

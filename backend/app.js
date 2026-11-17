@@ -42,6 +42,13 @@ function createApp() {
     next();
   });
 
+  // Respostas da API nunca vao para cache (navegador, proxy ou CDN da Vercel):
+  // pedidos, caixa e dados de clientes nao podem ser servidos a outra pessoa.
+  app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
+
   app.use('/api', require('./routes/public'));
   app.use('/api', require('./routes/auth'));
   app.use('/api', require('./routes/orders'));
