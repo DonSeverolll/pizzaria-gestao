@@ -105,6 +105,8 @@ router.get('/auth/me', authMiddleware, requireAuth, (req, res) => {
     user: {
       id: req.user.id,
       username: req.user.username,
+      // Nome de exibicao (vem do banco a cada requisicao; null se nao houver).
+      name: req.user.name || null,
       role: req.user.role,
       roleLabel: ROLE_LABELS[req.user.role] || req.user.role,
       permissions: ROLE_PERMISSIONS[req.user.role] || [],

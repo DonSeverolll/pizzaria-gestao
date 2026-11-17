@@ -98,6 +98,8 @@ test('login: validacao, credencial errada e perfil do dono', async () => {
   assert.equal(me.status, 200);
   assert.equal(me.data.user.username, 'admin');
   assert.equal(me.data.user.isOwner, true);
+  // O painel mostra o nome de exibicao (ou o login, quando nao ha nome).
+  assert.ok(Object.hasOwn(me.data.user, 'name'));
 });
 
 test('rotas protegidas exigem token e perfil', async () => {
