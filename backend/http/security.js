@@ -1,8 +1,9 @@
 // Cabecalhos de seguranca e limite de requisicoes.
 //
-// Implementados aqui (sem dependencias extras) para manter o backend enxuto.
-// O limitador guarda contagens em memoria: na Vercel cada instancia tem o seu
-// contador, o que ja barra forca bruta e spam vindos de um mesmo IP.
+// O limite usa express-rate-limit (reconhecido pelo CodeQL) com contagem em
+// memoria: na Vercel cada instancia tem o seu contador, o que ja barra forca
+// bruta e spam vindos de um mesmo IP.
+const { rateLimit: createRateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -32,39 +33,16 @@ function securityHeaders(req, res, next) {
   next();
 }
 
-const MAX_TRACKED_KEYS = 10000;
-
-function rateLimit({ windowMs, max, message, key = (req) => req.ip }) {
-  const hits = new Map();
-
-  function prune(now) {
-    for (const [entryKey, entry] of hits) {
-      if (entry.resetAt <= now) hits.delete(entryKey);
-    }
-  }
-
-  return function rateLimiter(req, res, next) {
-    const now = Date.now();
-    if (hits.size > MAX_TRACKED_KEYS) prune(now);
-
-    const id = String(key(req));
-    let entry = hits.get(id);
-    if (!entry || entry.resetAt <= now) {
-      entry = { count: 0, resetAt: now + windowMs };
-      hits.set(id, entry);
-    }
-
-    entry.count += 1;
-    res.setHeader('RateLimit-Limit', String(max));
-    res.setHeader('RateLimit-Remaining', String(Math.max(0, max - entry.count)));
-
-    if (entry.count > max) {
-      res.setHeader('Retry-After', String(Math.ceil((entry.resetAt - now) / 1000)));
-      return res.status(429).json({ message });
-    }
-
-    return next();
-  };
+// Cria um limitador que responde 429 em JSON, no mesmo formato de erro da API.
+function rateLimit({ windowMs, max, message, key }) {
+  return createRateLimit({
+    windowMs,
+    limit: max,
+    standardHeaders: 'draft-6',
+    legacyHeaders: false,
+    message: { message },
+    ...(key ? { keyGenerator: key } : {}),
+  });
 }
 
 // Limites usados nas rotas publicas mais sensiveis.
@@ -74,7 +52,7 @@ const limiters = {
     windowMs: 15 * 60 * 1000,
     max: 10,
     message: 'Muitas tentativas de login. Aguarde alguns minutos e tente de novo.',
-    key: (req) => `${req.ip}|${String(req.body?.username || '').toLowerCase()}`,
+    key: (req) => `${ipKeyGenerator(req.ip || '')}|${String(req.body?.username || '').toLowerCase().slice(0, 80)}`,
   }),
   register: rateLimit({
     windowMs: 60 * 60 * 1000,
@@ -90,6 +68,12 @@ const limiters = {
     windowMs: 60 * 1000,
     max: 30,
     message: 'Muitas consultas de pedido. Aguarde um minuto.',
+  }),
+  // Paginas do site servidas do disco: limite folgado, so contra abuso.
+  pages: rateLimit({
+    windowMs: 60 * 1000,
+    max: 300,
+    message: 'Muitas requisições em sequência. Aguarde um minuto.',
   }),
 };
 

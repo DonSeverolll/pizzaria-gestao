@@ -6,7 +6,7 @@ const path = require('node:path');
 const express = require('express');
 
 const config = require('./config');
-const { securityHeaders } = require('./http/security');
+const { securityHeaders, limiters } = require('./http/security');
 const { errorHandler } = require('./http/errors');
 
 // Paginas do painel servidas tambem sem a extensao .html.
@@ -56,7 +56,7 @@ function createApp() {
 
   app.use(express.static(config.publicDir, { index: 'index.html', extensions: ['html'] }));
 
-  app.get('/{*caminho}', (req, res) => {
+  app.get('/{*caminho}', limiters.pages, (req, res) => {
     const page = req.path.replace(/^\/+/, '').replace(/\.html$/, '');
     const file = ADMIN_PAGES.includes(page) ? `${page}.html` : 'index.html';
     res.sendFile(path.join(config.publicDir, file));

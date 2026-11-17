@@ -53,7 +53,10 @@ function errorHandler(error, req, res, next) {
   // `expose` marca erros 5xx cuja mensagem e segura e util ao usuario
   // (ex.: JWT_SECRET ausente -> 503).
   if (status >= 500 && !error.expose) {
-    console.error(`[${req.method} ${req.originalUrl}]`, error);
+    // Formato constante e URL sem quebras de linha: o endereco vem do cliente
+    // e nao pode forjar linhas no log nem virar string de formatacao.
+    const url = String(req.originalUrl || '').replace(/[\r\n\u2028\u2029]/g, '').slice(0, 300);
+    console.error('[%s %s]', req.method, url, error);
     return res.status(status).json({ message: error.publicMessage || 'Erro interno do servidor.' });
   }
 
