@@ -1,0 +1,107 @@
+/* Painel: cartoes de resumo, grade de cartoes (mesas, pedidos, clientes...),
+   pilulas de status e botoes inline. */
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--panel) 100%);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.summary-card .label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.summary-card strong {
+  font-size: 2rem;
+}
+
+.tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.table-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  padding: 16px;
+}
+
+.table-card .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.table-card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.table-card .capacity {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.table-status {
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+.table-status[data-status='available'] {
+  background: rgba(46, 165, 106, 0.12);
+  color: var(--success);
+}
+
+.table-status[data-status='occupied'] {
+  background: rgba(217, 75, 61, 0.12);
+  color: var(--danger);
+}
+
+.table-status[data-status='reserved'] {
+  background: rgba(214, 148, 48, 0.14);
+  color: var(--warning);
+}
+
+.table-status[data-status='cleaning'] {
+  background: rgba(108, 112, 125, 0.12);
+  color: #4f5768;
+}
+
+.type-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.inline-button {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  min-height: 38px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.inline-button.primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}

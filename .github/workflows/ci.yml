@@ -1,0 +1,53 @@
+# Integracao continua: testes, auditoria de dependencias e busca de segredos
+# em todo push e pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes (Node da .nvmrc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias (lockfile exato, sem scripts de instalacao)
+        run: npm ci --ignore-scripts
+
+      - name: Auditoria de vulnerabilidades
+        run: npm audit --audit-level=moderate
+
+      - name: Testes
+        run: npm test
+
+  segredos:
+    name: Busca de segredos no historico
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@v3.95.3
+        with:
+          extra_args: --results=verified,unknown

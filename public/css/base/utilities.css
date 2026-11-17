@@ -1,0 +1,7 @@
+/* Utilitarios. Hoje contem apenas uma copia de .hidden identica a de
+   base/reset.css (mantida para preservar a cascata original). Utilitarios novos
+   podem entrar aqui: este arquivo e carregado quase no fim. */
+
+.hidden {
+  display: none !important;
+}

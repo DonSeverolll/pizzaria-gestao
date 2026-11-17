@@ -1,0 +1,65 @@
+/* Painel: formularios (mesa, produto), upload de imagem e preview de logo. */
+
+.table-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.table-form input {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  min-height: 46px;
+  padding: 0 12px;
+}
+
+.product-form {
+  display: grid;
+  gap: 12px;
+}
+
+.product-form input,
+.product-form select {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  min-height: 46px;
+  padding: 0 12px;
+}
+
+.field-group {
+  display: grid;
+  gap: 12px;
+}
+
+.upload-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.upload-row input[type='file'] {
+  flex: 1;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+.logo-preview {
+  margin-top: 10px;
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 6px;
+}
+
+.size-prices-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}

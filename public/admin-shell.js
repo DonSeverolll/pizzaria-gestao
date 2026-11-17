@@ -2,6 +2,8 @@
 // menu, o que ja causou listas divergentes entre telas. Aqui tambem escondemos
 // as areas que o perfil do funcionario nao acessa (a regra de verdade continua
 // no servidor, em backend/auth.js).
+// Depende de /js/core.js (window.PL). Este arquivo e carregado com defer no
+// <head>, entao so roda depois dos scripts do fim do <body>, inclusive core.js.
 (function () {
   const NAV_ITEMS = [
     { key: 'dashboard', label: 'Dashboard', href: '/admin', area: null },
@@ -32,7 +34,7 @@
         <img class="brand-logo brand-logo-admin" src="/logo-pl-real.png" alt="Logo PL Pizza" />
         <div>
           <strong>PL Pizza</strong>
-          <small>${user?.roleLabel || 'Admin'}</small>
+          <small>${window.PL.dom.escapeHtml(user?.roleLabel || 'Admin')}</small>
         </div>
       </div>
 
@@ -57,10 +59,12 @@
     const sidebar = document.getElementById('adminSidebar');
     if (!sidebar) return;
 
-    const token = localStorage.getItem('pizzaria-token');
+    const token = window.PL.auth.getToken();
     let user = null;
 
     if (token) {
+      // Fetch direto (e nao PL.api): aqui um 401 nao deve redirecionar; sem
+      // usuario, o menu completo aparece e o servidor barra o que nao pode.
       try {
         const response = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
         if (response.ok) {

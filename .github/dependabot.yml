@@ -1,0 +1,33 @@
+# Dependabot: alertas e pull requests automaticos de atualizacao.
+# Correcoes de seguranca chegam assim que publicadas; atualizacoes comuns
+# vem agrupadas uma vez por semana para nao gerar ruido.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Recife
+    open-pull-requests-limit: 10
+    labels: [dependencias]
+    groups:
+      producao:
+        dependency-type: production
+        update-types: [minor, patch]
+      desenvolvimento:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Recife
+    labels: [dependencias, ci]
+    groups:
+      actions:
+        patterns: ["*"]

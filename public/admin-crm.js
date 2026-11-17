@@ -6,10 +6,12 @@ const crmHistoryBody = document.getElementById('crmHistoryBody');
 const crmHistoryTitle = document.getElementById('crmHistoryTitle');
 const crmHistoryClose = document.getElementById('crmHistoryClose');
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
+const { currency: toCurrency, onlyDigits } = PL.format;
+
+const token = PL.auth.requireToken();
+const apiFetch = PL.api.client({ token });
 
 let customers = [];
 let storePhone = '';
@@ -27,31 +29,6 @@ const SEGMENT_PILL = {
   inativo: 'occupied',
   'sem-pedido': 'cleaning',
 };
-
-async function apiFetch(path) {
-  const response = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
-
-  if (response.status === 401) {
-    localStorage.removeItem('pizzaria-token');
-    window.location.href = '/admin';
-    throw new Error('Sessão expirada.');
-  }
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return data;
-}
-
-function toCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
-}
-
-function onlyDigits(value) {
-  return String(value || '').replace(/\D/g, '');
-}
 
 function whatsappLink(customer) {
   const digits = onlyDigits(customer.phone);
@@ -81,11 +58,11 @@ function renderList() {
           return `
             <article class="table-card">
               <div class="row">
-                <h3>${customer.name || 'Cliente'}</h3>
+                <h3>${escapeHtml(customer.name || 'Cliente')}</h3>
                 <span class="table-status" data-status="${SEGMENT_PILL[customer.segment]}">${SEGMENT_LABELS[customer.segment]}</span>
               </div>
-              <div class="capacity"><strong>Telefone:</strong> ${customer.phone || '—'}</div>
-              <div class="capacity"><strong>Pedidos:</strong> ${customer.orders}</div>
+              <div class="capacity"><strong>Telefone:</strong> ${escapeHtml(customer.phone || '—')}</div>
+              <div class="capacity"><strong>Pedidos:</strong> ${escapeHtml(customer.orders)}</div>
               <div class="capacity"><strong>Total gasto:</strong> ${toCurrency(customer.totalSpent)}</div>
               <div class="capacity"><strong>Ticket médio:</strong> ${toCurrency(customer.ticket)}</div>
               <div class="capacity"><strong>Último pedido:</strong> ${
@@ -93,12 +70,12 @@ function renderList() {
                   ? 'nunca'
                   : customer.daysSinceLastOrder === 0
                     ? 'hoje'
-                    : `há ${customer.daysSinceLastOrder} dia(s)`
+                    : `há ${escapeHtml(customer.daysSinceLastOrder)} dia(s)`
               }</div>
-              ${customer.lastAddress ? `<div class="capacity"><strong>Último endereço:</strong> ${customer.lastAddress}</div>` : ''}
+              ${customer.lastAddress ? `<div class="capacity"><strong>Último endereço:</strong> ${escapeHtml(customer.lastAddress)}</div>` : ''}
               <div class="type-actions">
-                <button class="inline-button primary" data-action="history" data-key="${customer.key}" type="button">Ver pedidos</button>
-                ${wa ? `<a class="inline-button" href="${wa}" target="_blank" rel="noreferrer">WhatsApp</a>` : ''}
+                <button class="inline-button primary" data-action="history" data-key="${escapeHtml(customer.key)}" type="button">Ver pedidos</button>
+                ${wa ? `<a class="inline-button" href="${escapeHtml(wa)}" target="_blank" rel="noreferrer">WhatsApp</a>` : ''}
               </div>
             </article>
           `;
@@ -136,11 +113,11 @@ async function showHistory(key) {
               .map(
                 (order) => `
                   <tr>
-                    <td>${order.order_code || `#${order.id}`}</td>
-                    <td>${new Date(String(order.created_at).replace(' ', 'T')).toLocaleString('pt-BR')}</td>
-                    <td>${order.items.map((item) => `${item.product_name} x${item.quantity}`).join(', ') || '—'}</td>
-                    <td>${order.payment_method || '—'}</td>
-                    <td>${order.status}</td>
+                    <td>${escapeHtml(order.order_code || `#${order.id}`)}</td>
+                    <td>${escapeHtml(PL.format.dateTime(order.created_at))}</td>
+                    <td>${escapeHtml(order.items.map((item) => `${item.product_name} x${item.quantity}`).join(', ') || '—')}</td>
+                    <td>${escapeHtml(order.payment_method || '—')}</td>
+                    <td>${escapeHtml(order.status)}</td>
                     <td>${toCurrency(order.total_value)}</td>
                   </tr>
                 `
@@ -150,7 +127,7 @@ async function showHistory(key) {
         </table>`
       : '<p class="muted-text">Nenhum pedido encontrado.</p>';
   } catch (error) {
-    crmHistoryBody.innerHTML = `<p class="muted-text">${error.message}</p>`;
+    crmHistoryBody.innerHTML = `<p class="muted-text">${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -158,6 +135,7 @@ async function loadCrm() {
   try {
     const [data, settings] = await Promise.all([
       apiFetch('/api/crm/customers'),
+      // Endpoint publico: fetch direto, sem token e sem redirecionar em erro.
       fetch('/api/store/public-settings').then((r) => r.json()).catch(() => ({})),
     ]);
 
@@ -171,7 +149,7 @@ async function loadCrm() {
 
     renderList();
   } catch (error) {
-    crmList.innerHTML = `<p class="muted-text">${error.message}</p>`;
+    crmList.innerHTML = `<p class="muted-text">${escapeHtml(error.message)}</p>`;
   }
 }
 

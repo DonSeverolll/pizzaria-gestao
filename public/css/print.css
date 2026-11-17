@@ -1,0 +1,14 @@
+/* Impressao (Exportar PDF do relatorio de lucro): esconde a navegacao do painel. */
+
+@media print {
+  .admin-sidebar,
+  .admin-menu-toggle,
+  #reportFilters,
+  .type-actions {
+    display: none !important;
+  }
+
+  .admin-content {
+    margin-left: 0 !important;
+  }
+}

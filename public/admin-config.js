@@ -10,28 +10,19 @@ const logoFile = document.getElementById('logoFile');
 const uploadLogoButton = document.getElementById('uploadLogoButton');
 const logoPreview = document.getElementById('logoPreview');
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
+const { currencyDot } = PL.format;
 
-async function apiFetch(path, options = {}) {
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-      Authorization: `Bearer ${token}`,
-    },
-  });
+const token = PL.auth.requireToken();
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.message || 'Erro ao salvar configuração.');
-  }
-
-  return res.json();
-}
+// Esta tela nunca tratou 401 de forma especial: o erro aparece na mensagem do
+// formulario (texto vindo do servidor), sem redirecionar.
+const apiFetch = PL.api.client({
+  token,
+  onUnauthorized: 'none',
+  errorMessage: 'Erro ao salvar configuração.',
+});
 
 async function loadSettings() {
   const data = await apiFetch('/api/store/settings');
@@ -81,11 +72,11 @@ async function loadCashRegister() {
   const summary = document.getElementById('cashSummary');
   if (summary) {
     summary.innerHTML = `
-      <div><strong>Status:</strong> ${cash.status || 'closed'}</div>
-      <div><strong>Dinheiro:</strong> R$ ${Number(cash.cash_total || 0).toFixed(2)}</div>
-      <div><strong>Pix:</strong> R$ ${Number(cash.pix_total || 0).toFixed(2)}</div>
-      <div><strong>Cartão:</strong> R$ ${Number(cash.card_total || 0).toFixed(2)}</div>
-      <div><strong>Saídas:</strong> R$ ${Number(cash.withdrawals || 0).toFixed(2)}</div>
+      <div><strong>Status:</strong> ${escapeHtml(cash.status || 'closed')}</div>
+      <div><strong>Dinheiro:</strong> ${currencyDot(cash.cash_total)}</div>
+      <div><strong>Pix:</strong> ${currencyDot(cash.pix_total)}</div>
+      <div><strong>Cartão:</strong> ${currencyDot(cash.card_total)}</div>
+      <div><strong>Saídas:</strong> ${currencyDot(cash.withdrawals)}</div>
     `;
   }
 
@@ -94,9 +85,9 @@ async function loadCashRegister() {
     movementList.innerHTML = cash.movements.length
       ? cash.movements.map((movement) => `
           <div class="movement-item">
-            <span>${movement.type}</span>
-            <strong>R$ ${Number(movement.amount || 0).toFixed(2)}</strong>
-            <small>${movement.method || 'dinheiro'} · ${movement.description || 'Sem descrição'}</small>
+            <span>${escapeHtml(movement.type)}</span>
+            <strong>${currencyDot(movement.amount)}</strong>
+            <small>${escapeHtml(movement.method || 'dinheiro')} · ${escapeHtml(movement.description || 'Sem descrição')}</small>
           </div>
         `).join('')
       : '<p class="muted-text">Nenhum movimento registrado.</p>';
@@ -215,17 +206,12 @@ if (uploadLogoButton) {
       uploadLogoButton.disabled = true;
       uploadLogoButton.textContent = 'Enviando...';
 
-      // FormData define o proprio Content-Type (com boundary), por isso nao usa apiFetch.
-      const res = await fetch('/api/uploads/image', {
+      // FormData: PL.api nao define Content-Type (o navegador poe o boundary).
+      const data = await apiFetch('/api/uploads/image', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
+        errorMessage: 'Erro ao enviar a logo.',
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Erro ao enviar a logo.');
-      }
 
       settingsForm.logoUrl.value = data.url;
       showLogoPreview(data.url);
@@ -236,13 +222,6 @@ if (uploadLogoButton) {
       uploadLogoButton.disabled = false;
       uploadLogoButton.textContent = 'Enviar logo';
     }
-  });
-}
-
-if (adminMenuToggle && adminSidebar) {
-  adminMenuToggle.addEventListener('click', () => {
-    const isOpen = adminSidebar.classList.toggle('open');
-    adminMenuToggle.setAttribute('aria-expanded', String(isOpen));
   });
 }
 

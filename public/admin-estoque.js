@@ -7,38 +7,11 @@ const movementList = document.getElementById('movementList');
 const adminMenuToggle = document.getElementById('adminMenuToggle');
 const adminSidebar = document.getElementById('adminSidebar');
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
 
-async function apiFetch(path, options = {}) {
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (res.status === 401) {
-    localStorage.removeItem('pizzaria-token');
-    window.location.href = '/admin';
-    throw new Error('Sessão expirada.');
-  }
-
-  if (res.status === 204) {
-    return null;
-  }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return data;
-}
+const token = PL.auth.requireToken();
+const apiFetch = PL.api.client({ token });
 
 let inventoryItems = [];
 
@@ -49,10 +22,10 @@ function renderInventory() {
           const isLow = Number(item.quantity) < Number(item.minimum_quantity);
           return `
             <div class="stock-item ${isLow ? 'low-stock' : ''}">
-              <strong>${item.ingredient_name}</strong>
-              <span>${Number(item.quantity).toFixed(2)} ${item.unit}</span>
-              <span class="muted-text">Mínimo: ${Number(item.minimum_quantity).toFixed(2)} ${item.unit}</span>
-              <button class="inline-button" data-id="${item.id}" type="button">Excluir</button>
+              <strong>${escapeHtml(item.ingredient_name)}</strong>
+              <span>${Number(item.quantity).toFixed(2)} ${escapeHtml(item.unit)}</span>
+              <span class="muted-text">Mínimo: ${Number(item.minimum_quantity).toFixed(2)} ${escapeHtml(item.unit)}</span>
+              <button class="inline-button" data-id="${escapeHtml(item.id)}" type="button">Excluir</button>
             </div>
           `;
         })
@@ -78,7 +51,7 @@ function renderInventory() {
 function renderMovementIngredientOptions() {
   const previousValue = movementIngredient.value;
   movementIngredient.innerHTML = inventoryItems
-    .map((item) => `<option value="${item.id}">${item.ingredient_name}</option>`)
+    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.ingredient_name)}</option>`)
     .join('');
 
   if (previousValue && inventoryItems.some((item) => String(item.id) === previousValue)) {
@@ -100,16 +73,16 @@ async function loadMovements() {
           .map(
             (movement) => `
               <div class="movement-item">
-                <span>${movement.movement_type}</span>
+                <span>${escapeHtml(movement.movement_type)}</span>
                 <strong>${Number(movement.quantity).toFixed(2)}</strong>
-                <small>${new Date(movement.created_at).toLocaleString('pt-BR')} · ${movement.notes || 'Sem observação'}</small>
+                <small>${escapeHtml(new Date(movement.created_at).toLocaleString('pt-BR'))} · ${escapeHtml(movement.notes || 'Sem observação')}</small>
               </div>
             `
           )
           .join('')
       : '<p class="muted-text">Nenhum movimento registrado para este ingrediente.</p>';
   } catch (error) {
-    movementList.innerHTML = `<p>${error.message}</p>`;
+    movementList.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -120,7 +93,7 @@ async function loadInventory() {
     renderMovementIngredientOptions();
     await loadMovements();
   } catch (error) {
-    inventoryGrid.innerHTML = `<p>${error.message}</p>`;
+    inventoryGrid.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -173,13 +146,6 @@ if (movementForm) {
 
 if (movementIngredient) {
   movementIngredient.addEventListener('change', loadMovements);
-}
-
-if (adminMenuToggle && adminSidebar) {
-  adminMenuToggle.addEventListener('click', () => {
-    const isOpen = adminSidebar.classList.toggle('open');
-    adminMenuToggle.setAttribute('aria-expanded', String(isOpen));
-  });
 }
 
 loadInventory();

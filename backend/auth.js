@@ -1,27 +1,33 @@
 const jwt = require('jsonwebtoken');
 
-const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+const config = require('./config');
+
+const JWT_ALGORITHM = 'HS256';
+const TOKEN_TTL = '8h';
+const DEV_FALLBACK_SECRET = 'pizzaria-dev-secret';
 
 const MISSING_SECRET_MESSAGE =
   'JWT_SECRET nao configurado no ambiente. Cadastre a variavel antes de usar o painel.';
 
-// O fallback de desenvolvimento esta num repositorio publico: aceita-lo em
-// producao deixaria qualquer pessoa forjar um token de admin. Em vez de
-// derrubar o processo no boot (o que tiraria do ar tambem o cardapio e o
-// checkout), o segredo so e exigido na hora de emitir/validar token: a loja
-// continua vendendo e apenas o acesso ao painel fica bloqueado, com log claro.
-const secretMissingInProduction = isProduction && !process.env.JWT_SECRET;
+// O segredo de reserva esta num repositorio publico: aceita-lo fora de
+// desenvolvimento deixaria qualquer pessoa forjar um token de dono. Por isso
+// so vale com NODE_ENV=development ou nos testes. Sem segredo, a loja
+// continua vendendo; apenas o login do painel fica bloqueado, com log claro.
+const allowsDevSecret = config.isTestRun || process.env.NODE_ENV === 'development';
+const secretMissing = !process.env.JWT_SECRET && !allowsDevSecret;
+const JWT_SECRET = process.env.JWT_SECRET || (allowsDevSecret ? DEV_FALLBACK_SECRET : null);
 
-if (secretMissingInProduction) {
+if (secretMissing) {
   console.error(`[SEGURANCA] ${MISSING_SECRET_MESSAGE} O login do painel ficara indisponivel.`);
+} else if (config.isProduction && JWT_SECRET.length < 32) {
+  console.warn('[SEGURANCA] JWT_SECRET curto: use pelo menos 32 caracteres aleatorios em producao.');
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pizzaria-dev-secret';
-
 function requireSecret() {
-  if (secretMissingInProduction) {
+  if (secretMissing) {
     const error = new Error(MISSING_SECRET_MESSAGE);
     error.statusCode = 503;
+    error.expose = true;
     throw error;
   }
 }
@@ -37,49 +43,17 @@ function signToken(user) {
       type: user.type || 'user',
     },
     JWT_SECRET,
-    { expiresIn: '8h' }
+    { algorithm: JWT_ALGORITHM, expiresIn: TOKEN_TTL }
   );
 }
 
-function authMiddleware(req, res, next) {
+function readBearerToken(req) {
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-  if (!token) {
-    return res.status(401).json({ message: 'Token de autenticação ausente.' });
-  }
-
-  if (secretMissingInProduction) {
-    return res.status(503).json({ message: MISSING_SECRET_MESSAGE });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    return next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Token inválido ou expirado.' });
-  }
+  return authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 }
 
-// Pedido de visitante e o caso normal de uma pizzaria: quem nao esta logado
-// segue como convidado em vez de tomar 401.
-function optionalAuth(req, res, next) {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-  if (!token || secretMissingInProduction) {
-    req.user = null;
-    return next();
-  }
-
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    req.user = null;
-  }
-
-  return next();
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] });
 }
 
 // Areas do painel que cada perfil enxerga. "admin" e o papel legado dos
@@ -87,8 +61,8 @@ function optionalAuth(req, res, next) {
 const ROLE_PERMISSIONS = {
   dono: ['*'],
   admin: ['*'],
-  gerente: ['pedidos', 'pdv', 'produtos', 'estoque', 'lucro', 'crm', 'clientes', 'mesas', 'caixa'],
-  caixa: ['pedidos', 'pdv', 'caixa', 'clientes', 'crm', 'mesas'],
+  gerente: ['pedidos', 'pagamentos', 'pdv', 'produtos', 'estoque', 'lucro', 'crm', 'clientes', 'mesas', 'caixa'],
+  caixa: ['pedidos', 'pagamentos', 'pdv', 'caixa', 'clientes', 'crm', 'mesas'],
   cozinha: ['pedidos'],
 };
 
@@ -99,6 +73,70 @@ const ROLE_LABELS = {
   caixa: 'Caixa / Atendente',
   cozinha: 'Cozinha',
 };
+
+// O perfil de funcionario vem do banco a cada requisicao, nao do token: quem
+// foi removido ou rebaixado perde o acesso na hora, sem esperar o token expirar.
+async function resolveStaffUser(decoded) {
+  const { getUserById } = require('./db');
+  const user = await getUserById(Number(decoded.id));
+  if (!user || !ROLE_PERMISSIONS[user.role]) {
+    return null;
+  }
+  return { id: user.id, username: user.username, name: user.name, role: user.role, type: 'staff' };
+}
+
+async function resolveUser(token) {
+  const decoded = verifyToken(token);
+  if (decoded.type === 'staff') {
+    return resolveStaffUser(decoded);
+  }
+  return decoded;
+}
+
+async function authMiddleware(req, res, next) {
+  const token = readBearerToken(req);
+
+  if (!token) {
+    return res.status(401).json({ message: 'Token de autenticação ausente.' });
+  }
+
+  if (secretMissing) {
+    return res.status(503).json({ message: MISSING_SECRET_MESSAGE });
+  }
+
+  let user;
+  try {
+    user = await resolveUser(token);
+  } catch {
+    return res.status(401).json({ message: 'Token inválido ou expirado.' });
+  }
+
+  if (!user) {
+    return res.status(401).json({ message: 'Sessão encerrada: faça login novamente.' });
+  }
+
+  req.user = user;
+  return next();
+}
+
+// Pedido de visitante e o caso normal de uma pizzaria: quem nao esta logado
+// segue como convidado em vez de tomar 401.
+async function optionalAuth(req, res, next) {
+  const token = readBearerToken(req);
+  req.user = null;
+
+  if (!token || secretMissing) {
+    return next();
+  }
+
+  try {
+    req.user = (await resolveUser(token)) || null;
+  } catch {
+    req.user = null;
+  }
+
+  return next();
+}
 
 function isOwner(role) {
   return role === 'dono' || role === 'admin';

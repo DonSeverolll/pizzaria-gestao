@@ -1,0 +1,95 @@
+/* Painel > PDV / Balcao (admin-pdv.html).
+   Trecho 1 do styles.css original: fica ANTES do reset por ordem historica.
+   Nao mova este arquivo no styles.css sem revisar a cascata. */
+
+.pdv-layout {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.pdv-search {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.pdv-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pdv-product {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 14px;
+  cursor: pointer;
+  min-height: 68px;
+}
+
+.pdv-product:hover {
+  border-color: var(--primary);
+}
+
+.pdv-product span {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.pdv-cart {
+  display: grid;
+  gap: 10px;
+}
+
+.pdv-cart-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  font-size: 0.88rem;
+}
+
+.pdv-cart-item small {
+  display: block;
+  color: var(--muted);
+}
+
+.pdv-receipt {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--success);
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.pdv-receipt-code {
+  font-size: 1.8rem;
+  letter-spacing: 0.04em;
+  color: var(--success);
+}
+
+@media (max-width: 900px) {
+  .pdv-layout {
+    grid-template-columns: 1fr;
+  }
+}

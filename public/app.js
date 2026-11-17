@@ -2,6 +2,10 @@ const API_BASE = '/api';
 const categoryOrder = ['Pizzas', 'Bebidas', 'Promos', 'Sobremesas'];
 const SESSION_KEY = 'pl-pizzas-session';
 
+// Escape de HTML compartilhado (js/core.js, carregado antes deste arquivo).
+// Todo dado da API/banco que entra em innerHTML passa por aqui.
+const { escapeHtml } = PL.dom;
+
 function getSession() {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY) || '{}');
@@ -60,6 +64,15 @@ const FALLBACK_IMAGES = {
   bebidas: makeIllustration('Bebidas', '#3fa1d8', '#dff6ff', '🥤'),
   pizzas: makeIllustration('Pizzas', '#d71920', '#ffe6df', '🍕'),
 };
+
+// Imagens aceitas em src montado como HTML: http(s), caminho do proprio site
+// ou uma das ilustracoes geradas acima. Qualquer outra coisa vira imagem vazia.
+const FALLBACK_IMAGE_URLS = new Set(Object.values(FALLBACK_IMAGES));
+
+function safeImageSrc(url) {
+  if (FALLBACK_IMAGE_URLS.has(url)) return url;
+  return PL.dom.safeUrl(url);
+}
 
 const state = {
   category: 'Pizzas',
@@ -277,7 +290,7 @@ async function loadStoreSettings() {
       storeBrandSubtitle.textContent = data.phone ? `Contato: ${data.phone}` : 'Pizza artesanal';
     }
     if (storeAddressText) {
-      storeAddressText.innerHTML = `${data.address || 'Santo Amaro, Recife - PE'}<br />${data.isOpen ? 'Aberto e pronto para receber você com o melhor sabor.' : 'Loja fechada no momento.'}`;
+      storeAddressText.innerHTML = `${escapeHtml(data.address || 'Santo Amaro, Recife - PE')}<br />${data.isOpen ? 'Aberto e pronto para receber você com o melhor sabor.' : 'Loja fechada no momento.'}`;
     }
 
     applyStoreOpenState(data.isOpen);
@@ -307,7 +320,8 @@ function toCurrency(value) {
 }
 
 function resolveItemImage(item) {
-  if (typeof item.image === 'string' && item.image.startsWith('http')) {
+  // So http(s) de verdade; o resto cai na ilustracao padrao.
+  if (typeof item.image === 'string' && /^https?:\/\//.test(item.image)) {
     return item.image;
   }
 
@@ -416,7 +430,8 @@ async function loadSiteQrCode() {
   try {
     const data = await fetch(`${API_BASE}/store/qrcode`).then((response) => response.json());
     image.src = data.dataUrl;
-    if (link) link.href = data.url;
+    // So http(s)/caminho local: evita link "javascript:" vindo da API.
+    if (link && PL.dom.safeUrl(data.url)) link.href = data.url;
   } catch {
     image.closest('.qr-card')?.classList.add('hidden');
   }
@@ -462,17 +477,17 @@ function renderCart() {
     .map(
       (item) => `
         <article class="cart-item">
-          <img src="${item.image}" alt="${item.name}" />
+          <img src="${escapeHtml(safeImageSrc(item.image))}" alt="${escapeHtml(item.name)}" />
           <div class="cart-details">
             <div class="cart-header">
-              <h4>${item.name}</h4>
+              <h4>${escapeHtml(item.name)}</h4>
               <strong>${toCurrency(item.price * item.quantity)}</strong>
             </div>
-            <div class="cart-meta">${describeCartEntry(item) || 'Padrão'}</div>
+            <div class="cart-meta">${escapeHtml(describeCartEntry(item) || 'Padrão')}</div>
             <div class="cart-controls">
-              <button type="button" data-action="decrease" data-key="${item.key}">−</button>
+              <button type="button" data-action="decrease" data-key="${escapeHtml(item.key)}">−</button>
               <span>${item.quantity}</span>
-              <button type="button" data-action="increase" data-key="${item.key}">+</button>
+              <button type="button" data-action="increase" data-key="${escapeHtml(item.key)}">+</button>
             </div>
           </div>
         </article>
@@ -589,7 +604,7 @@ function renderMenu() {
         <label>
           <span>Tamanho</span>
           <select data-role="size">
-            ${sizes.map((size) => `<option value="${size.key}">${size.label} — ${toCurrency(size.price)}</option>`).join('')}
+            ${sizes.map((size) => `<option value="${escapeHtml(size.key)}">${escapeHtml(size.label)} — ${toCurrency(size.price)}</option>`).join('')}
           </select>
         </label>
       `;
@@ -603,7 +618,7 @@ function renderMenu() {
         <label>
           <span>Borda / massa</span>
           <select data-role="dough">
-            ${doughs.map((dough) => `<option value="${dough}">${dough}</option>`).join('')}
+            ${doughs.map((dough) => `<option value="${escapeHtml(dough)}">${escapeHtml(dough)}</option>`).join('')}
           </select>
         </label>
       `;
@@ -619,7 +634,7 @@ function renderMenu() {
           ${extras
             .map(
               (extra) =>
-                `<label><input type="checkbox" data-role="extra" value="${extra.id}" /> ${extra.name} (+${toCurrency(extra.price)})</label>`
+                `<label><input type="checkbox" data-role="extra" value="${escapeHtml(extra.id)}" /> ${escapeHtml(extra.name)} (+${toCurrency(extra.price)})</label>`
             )
             .join('')}
         </div>
@@ -677,7 +692,7 @@ async function initMenu() {
     renderMenu();
     renderCart();
   } catch (error) {
-    menuGrid.innerHTML = `<p class="empty-state">${error.message}</p>`;
+    menuGrid.innerHTML = `<p class="empty-state">${escapeHtml(error.message)}</p>`;
   }
 }
 
@@ -739,8 +754,8 @@ function renderClientDashboard(mode = 'history') {
         <h4>Histórico de compras</h4>
         <div class="customer-list">
           <div class="row-item"><strong>Último pedido:</strong> Pedido em preparação.</div>
-          <div class="row-item"><strong>Quantidade de pedidos:</strong> ${session.user?.orderCount || 1}</div>
-          <div class="row-item"><strong>Pagamento preferencial:</strong> ${session.user?.paymentKey || 'PIX'}</div>
+          <div class="row-item"><strong>Quantidade de pedidos:</strong> ${escapeHtml(session.user?.orderCount || 1)}</div>
+          <div class="row-item"><strong>Pagamento preferencial:</strong> ${escapeHtml(session.user?.paymentKey || 'PIX')}</div>
         </div>
       </div>
     `;
@@ -798,7 +813,7 @@ async function loginFromSidebar() {
 async function registerCustomer() {
   const name = window.prompt('Qual o nome do cliente?');
   const login = window.prompt('Digite o login desejado:');
-  const password = window.prompt('Digite a senha:');
+  const password = window.prompt('Digite a senha (mínimo 8 caracteres):');
 
   if (!name || !login || !password) {
     sidebarLoginMessage.textContent = 'Preencha nome, login e senha para cadastrar.';

@@ -1,0 +1,235 @@
+/* Vitrine: barra superior (marca, navegacao, botoes de conta, seletor de modo
+   de pedido, pilulas de endereco e carrinho). */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.topbar-main {
+  background: var(--brand-red);
+  color: #fff;
+}
+
+.topbar-main-inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 76px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 3px;
+}
+
+.brand-wordmark {
+  font-size: 1.7rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.04em;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.brand-logo-admin {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
+  display: block;
+  border-radius: 18px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin: 0 auto;
+}
+
+.topbar-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.98rem;
+  padding: 8px 2px;
+  border-bottom: 3px solid transparent;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.topbar-nav-item:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.85);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.topbar-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-button {
+  border-radius: 999px;
+  padding: 11px 26px;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.topbar-button:hover {
+  transform: translateY(-1px);
+}
+
+.topbar-button.outline {
+  background: transparent;
+  border: 2px solid #fff;
+  color: #fff;
+}
+
+.topbar-button.solid {
+  background: #fff;
+  border: 2px solid #fff;
+  color: var(--brand-red);
+}
+
+.topbar-menu-toggle {
+  display: none;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.topbar-sub {
+  background: var(--primary-deep);
+  color: #fff;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.topbar-sub-inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 66px;
+  flex-wrap: wrap;
+}
+
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.16);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.mode-option {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.92rem;
+  padding: 9px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.mode-option.is-active {
+  background: #fff;
+  color: var(--brand-red);
+}
+
+.location-pill,
+.cart-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 999px;
+  text-align: left;
+  transition: background 0.2s ease;
+}
+
+.location-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cart-pill {
+  margin-left: auto;
+  background: #fff;
+  color: var(--brand-red);
+  padding: 8px 18px 8px 14px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.cart-pill:hover {
+  transform: translateY(-1px);
+}
+
+.pill-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.pill-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.pill-text strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.pill-text span {
+  font-size: 0.82rem;
+  opacity: 0.9;
+}
+
+.cart-pill .pill-text span {
+  opacity: 0.75;
+}
+
+.pill-chevron {
+  font-size: 1rem;
+  opacity: 0.8;
+}

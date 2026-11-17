@@ -2,36 +2,13 @@ const staffForm = document.getElementById('staffForm');
 const staffList = document.getElementById('staffList');
 const staffMessage = document.getElementById('staffMessage');
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
+
+const token = PL.auth.requireToken();
+const apiFetch = PL.api.client({ token });
 
 let currentUserId = null;
-
-async function apiFetch(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}), Authorization: `Bearer ${token}` },
-  });
-
-  if (response.status === 401) {
-    localStorage.removeItem('pizzaria-token');
-    window.location.href = '/admin';
-    throw new Error('Sessão expirada.');
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return data;
-}
 
 function showMessage(text, isError = false) {
   staffMessage.textContent = text;
@@ -46,22 +23,22 @@ function renderStaff(users, roles) {
           return `
             <article class="table-card">
               <div class="row">
-                <h3>${user.name || user.username}</h3>
-                <span class="table-status" data-status="${user.role === 'dono' || user.role === 'admin' ? 'available' : 'cleaning'}">${roles[user.role] || user.role}</span>
+                <h3>${escapeHtml(user.name || user.username)}</h3>
+                <span class="table-status" data-status="${user.role === 'dono' || user.role === 'admin' ? 'available' : 'cleaning'}">${escapeHtml(roles[user.role] || user.role)}</span>
               </div>
-              <div class="capacity"><strong>Usuário:</strong> ${user.username}${isSelf ? ' (você)' : ''}</div>
+              <div class="capacity"><strong>Usuário:</strong> ${escapeHtml(user.username)}${isSelf ? ' (você)' : ''}</div>
               <div class="capacity"><strong>Desde:</strong> ${
-                user.created_at ? new Date(String(user.created_at).replace(' ', 'T')).toLocaleDateString('pt-BR') : '—'
+                user.created_at ? escapeHtml(PL.format.date(user.created_at)) : '—'
               }</div>
 
               <div class="option-group" style="margin-top: 12px;">
                 <label>
                   <span>Perfil</span>
-                  <select data-action="role" data-id="${user.id}">
+                  <select data-action="role" data-id="${escapeHtml(user.id)}">
                     ${['dono', 'gerente', 'caixa', 'cozinha']
                       .map(
                         (role) =>
-                          `<option value="${role}"${role === user.role || (role === 'dono' && user.role === 'admin') ? ' selected' : ''}>${roles[role] || role}</option>`
+                          `<option value="${role}"${role === user.role || (role === 'dono' && user.role === 'admin') ? ' selected' : ''}>${escapeHtml(roles[role] || role)}</option>`
                       )
                       .join('')}
                   </select>
@@ -69,8 +46,8 @@ function renderStaff(users, roles) {
               </div>
 
               <div class="type-actions">
-                <button class="inline-button" data-action="password" data-id="${user.id}" type="button">Trocar senha</button>
-                <button class="inline-button" data-action="remove" data-id="${user.id}" data-name="${user.name || user.username}" type="button" ${isSelf ? 'disabled' : ''}>Remover</button>
+                <button class="inline-button" data-action="password" data-id="${escapeHtml(user.id)}" type="button">Trocar senha</button>
+                <button class="inline-button" data-action="remove" data-id="${escapeHtml(user.id)}" data-name="${escapeHtml(user.name || user.username)}" type="button" ${isSelf ? 'disabled' : ''}>Remover</button>
               </div>
             </article>
           `;
@@ -96,7 +73,7 @@ function renderStaff(users, roles) {
 
   staffList.querySelectorAll('[data-action="password"]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const password = prompt('Nova senha (mínimo 6 caracteres):');
+      const password = prompt('Nova senha (mínimo 8 caracteres):');
       if (!password) return;
 
       try {
@@ -134,7 +111,7 @@ async function loadStaff() {
     const data = await apiFetch('/api/admin/users');
     renderStaff(data.users, data.roles);
   } catch (error) {
-    staffList.innerHTML = `<p class="muted-text">${error.message}</p>`;
+    staffList.innerHTML = `<p class="muted-text">${escapeHtml(error.message)}</p>`;
   }
 }
 

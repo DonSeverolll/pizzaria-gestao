@@ -1,0 +1,47 @@
+/* Vitrine: secoes informativas (QR code do site e endereco / visita). */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  padding: 0 0 64px;
+}
+
+.card-title-row {
+  margin-bottom: 18px;
+}
+
+.section-kicker {
+  background: var(--red-soft);
+  color: var(--primary-deep);
+}
+
+.card-title-row h3 {
+  margin: 12px 0 0;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0 22px;
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fff9f6 0%, #fff3ef 100%);
+}
+
+.qr-box img {
+  width: 180px;
+  height: 180px;
+  border-radius: 18px;
+  background: white;
+  padding: 8px;
+}
+
+.visit-card p {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 1.02rem;
+  margin: 0 0 20px;
+}

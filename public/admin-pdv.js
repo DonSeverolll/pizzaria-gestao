@@ -8,36 +8,14 @@ const pdvMessage = document.getElementById('pdvMessage');
 const pdvClear = document.getElementById('pdvClear');
 const pdvReceipt = document.getElementById('pdvReceipt');
 
-const token = localStorage.getItem('pizzaria-token');
-if (!token) {
-  window.location.href = '/admin';
-}
+// Helpers compartilhados (js/core.js).
+const { escapeHtml } = PL.dom;
+const { currency: toCurrency } = PL.format;
+
+const token = PL.auth.requireToken();
+const apiFetch = PL.api.client({ token });
 
 const state = { products: [], category: '', search: '', cart: [] };
-
-async function apiFetch(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}), Authorization: `Bearer ${token}` },
-  });
-
-  if (response.status === 401) {
-    localStorage.removeItem('pizzaria-token');
-    window.location.href = '/admin';
-    throw new Error('Sessão expirada.');
-  }
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || 'Erro inesperado.');
-  }
-
-  return data;
-}
-
-function toCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
-}
 
 function renderCategories() {
   const categories = [...new Set(state.products.map((product) => product.category))];
@@ -46,7 +24,7 @@ function renderCategories() {
   pdvCategories.innerHTML = categories
     .map(
       (category) =>
-        `<button class="category-tab${category === state.category ? ' active' : ''}" data-category="${category}" type="button">${category}</button>`
+        `<button class="category-tab${category === state.category ? ' active' : ''}" data-category="${escapeHtml(category)}" type="button">${escapeHtml(category)}</button>`
     )
     .join('');
 
@@ -71,8 +49,8 @@ function renderProducts() {
     ? visible
         .map(
           (product) => `
-            <button class="pdv-product" data-id="${product.id}" type="button">
-              <strong>${product.name}</strong>
+            <button class="pdv-product" data-id="${escapeHtml(product.id)}" type="button">
+              <strong>${escapeHtml(product.name)}</strong>
               <span>${toCurrency(product.price)}</span>
             </button>
           `
@@ -106,13 +84,13 @@ function renderCart() {
           (item) => `
             <div class="pdv-cart-item">
               <div>
-                <strong>${item.name}</strong>
+                <strong>${escapeHtml(item.name)}</strong>
                 <small>${toCurrency(item.price)} un.</small>
               </div>
               <div class="cart-controls">
-                <button type="button" data-action="dec" data-id="${item.productId}">−</button>
+                <button type="button" data-action="dec" data-id="${escapeHtml(item.productId)}">−</button>
                 <span>${item.quantity}</span>
-                <button type="button" data-action="inc" data-id="${item.productId}">+</button>
+                <button type="button" data-action="inc" data-id="${escapeHtml(item.productId)}">+</button>
               </div>
               <strong>${toCurrency(item.price * item.quantity)}</strong>
             </div>
@@ -162,7 +140,7 @@ pdvForm.addEventListener('submit', async (event) => {
     });
 
     pdvReceipt.innerHTML = `
-      <strong class="pdv-receipt-code">${data.order.order_code}</strong>
+      <strong class="pdv-receipt-code">${escapeHtml(data.order.order_code)}</strong>
       <span>Total cobrado: ${toCurrency(data.resumo.total)}</span>
       <span>${data.lancadoNoCaixa ? 'Lançado no caixa aberto.' : 'Caixa fechado — venda registrada sem lançamento.'}</span>
     `;
@@ -200,6 +178,6 @@ pdvSearch.addEventListener('input', (event) => {
     renderProducts();
     renderCart();
   } catch (error) {
-    pdvProducts.innerHTML = `<p class="muted-text">${error.message}</p>`;
+    pdvProducts.innerHTML = `<p class="muted-text">${escapeHtml(error.message)}</p>`;
   }
 })();
